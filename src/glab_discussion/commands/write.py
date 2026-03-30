@@ -60,28 +60,24 @@ def run(args: argparse.Namespace) -> None:
         else:
             version = versions[0]  # latest
 
-        fields: dict[str, str] = {}
-        raw_fields: dict[str, str] = {"body": body}
-
-        # Position fields: use -F for typed values, -f for strings
-        fields["position[position_type]"] = "text"
-        fields["position[base_sha]"] = version["base_commit_sha"]
-        fields["position[head_sha]"] = version["head_commit_sha"]
-        fields["position[start_sha]"] = version["start_commit_sha"]
-
-        raw_fields["position[old_path]"] = args.file
-        raw_fields["position[new_path]"] = args.file
+        position: dict = {
+            "position_type": "text",
+            "base_sha": version["base_commit_sha"],
+            "head_sha": version["head_commit_sha"],
+            "start_sha": version["start_commit_sha"],
+            "old_path": args.file,
+            "new_path": args.file,
+        }
 
         if args.new_line is not None:
-            fields["position[new_line]"] = str(args.new_line)
+            position["new_line"] = args.new_line
         if args.old_line is not None:
-            fields["position[old_line]"] = str(args.old_line)
+            position["old_line"] = args.old_line
 
         result = glab_api(
             f"projects/{ctx.project_id}/merge_requests/{ctx.mr_iid}/discussions",
             method="POST",
-            fields=fields,
-            raw_fields=raw_fields,
+            json_body={"body": body, "position": position},
             hostname=ctx.hostname,
         )
 

@@ -18,6 +18,7 @@ def glab_api(
     method: str | None = None,
     fields: dict[str, str] | None = None,
     raw_fields: dict[str, str] | None = None,
+    json_body: dict | None = None,
     hostname: str | None = None,
     paginate: bool = False,
 ) -> Any:
@@ -36,7 +37,12 @@ def glab_api(
         for k, v in raw_fields.items():
             cmd.extend(["-f", f"{k}={v}"])
 
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    stdin_data = None
+    if json_body is not None:
+        cmd.extend(["--input", "-", "-H", "Content-Type: application/json"])
+        stdin_data = json.dumps(json_body)
+
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, input=stdin_data)
     if result.returncode != 0:
         raise GlabApiError(
             f"glab api failed: {result.stderr.strip()}",
