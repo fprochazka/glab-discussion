@@ -17,7 +17,7 @@ from glab_discussion.users import display_name, enrich_discussions_with_bot_info
 def _discussion_filename(discussion: Discussion, user_cache: dict[int, UserInfo]) -> str:
     """Compute filename for a discussion dump file."""
     first = discussion.first_note
-    dt = sanitize_filename_part(first.created_at.split(".")[0])
+    dt = sanitize_filename_part(first.created_at[:16])
     user = user_cache.get(first.author_id)
     name = sanitize_filename_part(display_name(user) if user else first.author_username)
     if user and user.is_bot:
