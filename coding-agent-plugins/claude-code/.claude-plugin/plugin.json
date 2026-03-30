@@ -1,6 +1,6 @@
 {
   "name": "glab-discussion",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Skill for working with GitLab MR discussions via the glab-discussion CLI",
   "author": {
     "name": "Filip Prochazka"
