@@ -132,5 +132,8 @@ def run(args: argparse.Namespace) -> None:
             print(f"  new: {f}")
         for f in deleted_files:
             print(f"  deleted: {f}")
+        unchanged = len(discussions) - len(new_files) - len(updated_files)
+        if unchanged > 0:
+            print(f"  ({unchanged} discussions up to date)")
     else:
-        print(f"  (no changes, {len(discussions)} discussions up to date)")
+        print(f"  ({len(discussions)} discussions up to date)")
