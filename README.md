@@ -1,6 +1,6 @@
 # glab-discussion
 
-CLI wrapper around GitLab Discussions REST API for listing, creating, and managing merge request discussions.
+CLI wrapper around GitLab Discussions REST API for listing, creating, and managing merge request discussions. Built on top of [`glab`](https://docs.gitlab.com/cli/) for authentication.
 
 ## Installation
 
@@ -71,7 +71,7 @@ glab-discussion resolve DISCUSSION_ID --unresolve --mr-url ...
 
 ## Requirements
 
-- `glab` CLI installed and authenticated
+- [`glab` CLI](https://docs.gitlab.com/cli/) installed and authenticated
 - Python 3.12+
 
 ## Development
