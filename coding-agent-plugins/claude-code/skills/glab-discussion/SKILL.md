@@ -30,7 +30,7 @@ Incremental — only rewrites files when content has changed. Prints a summary o
 
 Each file contains:
 - Header: discussion ID, type (General/DiffNote), resolved status, file/line for diff notes, URL
-- Body: chronological notes with timestamps, usernames, `[BOT]` for bot accounts
+- Body: chronological notes with timestamps, usernames, note IDs `(note:<id>)`, `[BOT]` for bot accounts
 
 ### diff — Show commentable diff with line numbers
 
@@ -88,6 +88,19 @@ For diff notes, `--commit <sha>` optionally pins to a specific diff version (mat
 glab-discussion resolve <discussion_id>
 glab-discussion resolve <discussion_id> --unresolve
 ```
+
+## Resolving GitLab UI URLs
+
+GitLab UI links to specific notes use `#note_<id>` anchors (e.g.
+`https://gitlab.example.com/group/project/-/merge_requests/123#note_456789`).
+To find the discussion thread for a note URL, grep the dump files for the note ID:
+
+```bash
+grep -rl "note:456789" /tmp/glab-discussion/<host>/mr-<iid>/
+```
+
+The matching file contains the full thread. The discussion ID is in the file header
+and also in the filename suffix.
 
 ## Typical AI Workflow
 
