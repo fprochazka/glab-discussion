@@ -8,6 +8,23 @@ CLI wrapper around GitLab Discussions REST API for listing, creating, and managi
 uv tool install glab-discussion
 ```
 
+### Claude Code plugin
+
+The repo includes a Claude Code plugin with a skill that teaches AI agents how to use `glab-discussion`.
+
+```bash
+claude plugin marketplace add fprochazka/glab-discussion
+claude plugin install glab-discussion@fprochazka-glab-discussion
+```
+
+To upgrade after a new release:
+
+```bash
+uv tool install --force glab-discussion
+claude plugin marketplace update fprochazka-glab-discussion
+claude plugin update glab-discussion@fprochazka-glab-discussion
+```
+
 ## Usage
 
 All subcommands accept `--mr-url` or `--hostname`/`--project`/`--mr-iid` to identify the merge request.
@@ -50,23 +67,6 @@ Resolve or unresolve a discussion.
 ```bash
 glab-discussion resolve DISCUSSION_ID --mr-url ...
 glab-discussion resolve DISCUSSION_ID --unresolve --mr-url ...
-```
-
-### Claude Code plugin
-
-The repo includes a Claude Code plugin with a skill that teaches AI agents how to use `glab-discussion`.
-
-```bash
-claude plugin marketplace add fprochazka/glab-discussion
-claude plugin install glab-discussion@fprochazka-glab-discussion
-```
-
-To upgrade after a new release:
-
-```bash
-uv tool install --force glab-discussion
-claude plugin marketplace update fprochazka-glab-discussion
-claude plugin update glab-discussion@fprochazka-glab-discussion
 ```
 
 ## Requirements
