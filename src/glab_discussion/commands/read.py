@@ -60,6 +60,13 @@ def run(args: argparse.Namespace) -> None:
     # 8. Dump mode
     tmp = Path(tempfile.gettempdir())
     output_dir = tmp / "glab-discussion" / sanitize_path_part(ctx.hostname) / f"mr-{ctx.mr_iid}"
+    force_full = args.full
+
+    if force_full and output_dir.exists():
+        import shutil
+
+        shutil.rmtree(output_dir)
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     meta_path = output_dir / ".meta.json"
@@ -72,8 +79,6 @@ def run(args: argparse.Namespace) -> None:
     new_files: list[str] = []
     updated_files: list[str] = []
 
-    force_full = args.full
-
     for discussion in discussions:
         filename = _discussion_filename(discussion, user_cache)
         max_ts = discussion.max_timestamp
@@ -81,8 +86,8 @@ def run(args: argparse.Namespace) -> None:
 
         new_meta[did] = {"max_timestamp": max_ts, "filename": filename}
 
-        # Check if we can skip
-        if not force_full and did in old_meta:
+        # Check if we can skip (--full always writes since dir was cleared)
+        if did in old_meta:
             old_entry = old_meta[did]
             if old_entry.get("max_timestamp") == max_ts:
                 continue
