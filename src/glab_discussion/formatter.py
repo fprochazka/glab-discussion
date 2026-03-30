@@ -43,7 +43,7 @@ def format_discussion(discussion: Discussion, mr_url: str) -> str:
         bot_tag = " [BOT]" if note.is_bot else ""
         # Simplify ISO timestamp: "2024-01-15T10:30:00.000Z" -> "2024-01-15 10:30:00"
         timestamp = note.created_at.replace("T", " ").split(".")[0]
-        lines.append(f"[{timestamp}] @{note.author_username}{bot_tag}:")
+        lines.append(f"[{timestamp}] @{note.author_username}{bot_tag} (note:{note.id}):")
         lines.append(note.body)
         lines.append("")
 

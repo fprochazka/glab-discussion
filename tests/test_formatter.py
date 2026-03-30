@@ -13,7 +13,7 @@ class TestFormatDiscussion:
         assert "Type: General" in result
         assert "Resolved: no" in result
         assert f"URL: {MR_URL}#note_12345" in result
-        assert "@alice:" in result
+        assert "@alice (note:12345):" in result
         assert "This is a comment" in result
         assert "[2025-01-15 10:30:00]" in result
 
@@ -24,7 +24,7 @@ class TestFormatDiscussion:
         assert "Line: new:42" in result
         assert "Commit: def456" in result
         assert "Resolved: no" in result
-        assert "@bob:" in result
+        assert "@bob (note:12346):" in result
         assert "Fix this line" in result
 
     def test_system_discussion(self, system_discussion: Discussion) -> None:
