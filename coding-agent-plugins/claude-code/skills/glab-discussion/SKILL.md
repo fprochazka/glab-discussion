@@ -80,7 +80,11 @@ glab-discussion write --file src/Foo.java --new-line 42 --commit <sha> --body "O
 - `--file <path>` — create a diff note (requires `--new-line` and/or `--old-line`)
 - Neither — create a new general discussion thread
 
-For diff notes, `--commit <sha>` optionally pins to a specific diff version (matched against `head_commit_sha`). Without it, uses the latest version.
+**Line numbers:** `--new-line` corresponds to the file on the MR source branch (HEAD).
+If the source branch is checked out locally, local file line numbers match `--new-line` directly —
+no need to run `glab-discussion diff` first. `--old-line` refers to the target branch version.
+
+`--commit <sha>` optionally pins to a specific diff version (matched against `head_commit_sha`). Without it, uses the latest version.
 
 ### resolve — Resolve/unresolve a discussion
 
