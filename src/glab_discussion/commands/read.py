@@ -121,8 +121,11 @@ def run(args: argparse.Namespace) -> None:
     meta_path.write_text(json.dumps(new_meta, indent=2) + "\n")
 
     # Print summary
+    is_first_run = not old_meta
     print(f"Discussions: {output_dir}/")
-    if new_files or updated_files or deleted_files:
+    if is_first_run:
+        print(f"  synced {len(new_files)} discussion threads")
+    elif new_files or updated_files or deleted_files:
         for f in updated_files:
             print(f"  updated: {f}")
         for f in new_files:
@@ -130,4 +133,4 @@ def run(args: argparse.Namespace) -> None:
         for f in deleted_files:
             print(f"  deleted: {f}")
     else:
-        print("  (no changes)")
+        print(f"  (no changes, {len(discussions)} discussions up to date)")
