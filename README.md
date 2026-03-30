@@ -52,6 +52,27 @@ glab-discussion resolve DISCUSSION_ID --mr-url ...
 glab-discussion resolve DISCUSSION_ID --unresolve --mr-url ...
 ```
 
+## Claude Code plugin
+
+The repo includes a Claude Code plugin with a skill that teaches AI agents how to use `glab-discussion`.
+
+```bash
+# Install the CLI
+uv tool install glab-discussion
+
+# Add the marketplace and install the plugin
+claude plugin marketplace add fprochazka/glab-discussion
+claude plugin install glab-discussion@fprochazka-glab-discussion
+```
+
+To upgrade after a new release:
+
+```bash
+uv tool install --force glab-discussion
+claude plugin marketplace update fprochazka-glab-discussion
+claude plugin update glab-discussion@fprochazka-glab-discussion
+```
+
 ## Requirements
 
 - `glab` CLI installed and authenticated
