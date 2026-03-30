@@ -20,6 +20,8 @@ def _discussion_filename(discussion: Discussion, user_cache: dict[int, UserInfo]
     dt = sanitize_filename_part(first.created_at.split(".")[0])
     user = user_cache.get(first.author_id)
     name = sanitize_filename_part(display_name(user) if user else first.author_username)
+    if user and user.is_bot:
+        name = f"bot-{name}"
     short_id = sanitize_filename_part(discussion.id[:12])
     return f"{dt}-{name}-{short_id}.txt"
 
