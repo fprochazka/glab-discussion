@@ -2,6 +2,10 @@
 
 CLI wrapper around GitLab Discussions REST API for listing, creating, and managing merge request discussions. Built on top of [`glab`](https://docs.gitlab.com/cli/) for authentication.
 
+## Why
+
+The `glab` CLI has no native support for merge request discussions. Reviewing comments, replying to threads, adding inline code review notes, and resolving discussions all require manual API calls with complex nested JSON payloads. This tool wraps those APIs into simple commands, with an incremental dump mode designed for AI agent workflows — each discussion thread gets its own file, only changed threads are rewritten, and bot authors are automatically tagged.
+
 ## Installation
 
 ```bash
