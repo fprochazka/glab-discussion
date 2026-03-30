@@ -1,0 +1,11 @@
+{
+  "name": "glab-discussion",
+  "version": "0.1.0",
+  "description": "Skill for working with GitLab MR discussions via the glab-discussion CLI",
+  "author": {
+    "name": "Filip Prochazka"
+  },
+  "repository": "https://github.com/fprochazka/glab-discussion",
+  "license": "MIT",
+  "keywords": ["gitlab", "discussions", "merge-request", "code-review"]
+}

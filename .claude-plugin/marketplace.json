@@ -1,0 +1,21 @@
+{
+  "name": "fprochazka-glab-discussion",
+  "description": "GitLab MR discussion CLI with Claude Code skill for reading, writing, and managing discussions",
+  "owner": {
+    "name": "Filip Procházka"
+  },
+  "plugins": [
+    {
+      "name": "glab-discussion",
+      "description": "Skill for working with GitLab MR discussions via the glab-discussion CLI",
+      "version": "0.1.0",
+      "author": {
+        "name": "Filip Procházka",
+        "url": "https://github.com/fprochazka"
+      },
+      "source": "./coding-agent-plugins/claude-code",
+      "category": "integration",
+      "homepage": "https://github.com/fprochazka/glab-discussion"
+    }
+  ]
+}
