@@ -38,8 +38,16 @@ def get_user_info(user_id: int, hostname: str) -> UserInfo:
     )
 
 
-def enrich_discussions_with_bot_info(discussions: list[Discussion], hostname: str) -> None:
-    """Populate is_bot on all notes in discussions."""
+def display_name(user: UserInfo) -> str:
+    """Return a suitable display name for filenames. Uses the name field for service accounts."""
+    stripped = user.username.replace("-", "").replace("_", "")
+    if "serviceaccount" in stripped:
+        return user.name
+    return user.username
+
+
+def enrich_discussions_with_bot_info(discussions: list[Discussion], hostname: str) -> dict[int, UserInfo]:
+    """Populate is_bot on all notes in discussions. Returns the user cache."""
     # Collect unique author IDs
     author_ids: set[int] = set()
     for d in discussions:
@@ -55,3 +63,5 @@ def enrich_discussions_with_bot_info(discussions: list[Discussion], hostname: st
     for d in discussions:
         for note in d.notes:
             note.is_bot = user_cache[note.author_id].is_bot
+
+    return user_cache

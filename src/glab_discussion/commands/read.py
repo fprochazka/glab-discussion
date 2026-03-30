@@ -8,19 +8,20 @@ from pathlib import Path
 from glab_discussion.api import glab_api
 from glab_discussion.context import resolve_mr_context
 from glab_discussion.formatter import format_discussion, format_discussions
-from glab_discussion.models import Discussion, parse_discussion
+from glab_discussion.models import Discussion, UserInfo, parse_discussion
 from glab_discussion.sanitize import sanitize_filename_part, sanitize_path_part
 from glab_discussion.terminal import is_interactive_terminal
-from glab_discussion.users import enrich_discussions_with_bot_info
+from glab_discussion.users import display_name, enrich_discussions_with_bot_info
 
 
-def _discussion_filename(discussion: Discussion) -> str:
+def _discussion_filename(discussion: Discussion, user_cache: dict[int, UserInfo]) -> str:
     """Compute filename for a discussion dump file."""
     first = discussion.first_note
     dt = sanitize_filename_part(first.created_at.split(".")[0])
-    username = sanitize_filename_part(first.author_username)
+    user = user_cache.get(first.author_id)
+    name = sanitize_filename_part(display_name(user) if user else first.author_username)
     short_id = sanitize_filename_part(discussion.id[:12])
-    return f"{dt}-{username}-{short_id}.txt"
+    return f"{dt}-{name}-{short_id}.txt"
 
 
 def run(args: argparse.Namespace) -> None:
@@ -41,7 +42,7 @@ def run(args: argparse.Namespace) -> None:
     discussions = [d for d in discussions if not d.is_system]
 
     # 5. Enrich with bot info
-    enrich_discussions_with_bot_info(discussions, ctx.hostname)
+    user_cache = enrich_discussions_with_bot_info(discussions, ctx.hostname)
 
     # 6. Determine dump mode
     if args.dump:
@@ -74,7 +75,7 @@ def run(args: argparse.Namespace) -> None:
     force_full = args.full
 
     for discussion in discussions:
-        filename = _discussion_filename(discussion)
+        filename = _discussion_filename(discussion, user_cache)
         max_ts = discussion.max_timestamp
         did = discussion.id
 
