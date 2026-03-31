@@ -11,8 +11,10 @@ description: >-
 # glab-discussion CLI
 
 CLI for listing, creating, and managing GitLab merge request discussions.
-Auto-detects the MR from the current git branch. Override with `--mr-url <url>`
-or `--hostname <host> --project <path> --mr-iid <n>`.
+
+**The MR is auto-detected from the current git branch** — no flags needed when the
+source branch is checked out. Do not pass context flags unless auto-detection fails.
+If it does, run `glab-discussion <command> --help` to see override options.
 
 ## Subcommands
 
