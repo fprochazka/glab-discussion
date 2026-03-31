@@ -31,37 +31,41 @@ claude plugin update glab-discussion@fprochazka-glab-discussion
 
 ## Usage
 
-All subcommands accept `--mr-url` or `--hostname`/`--project`/`--mr-iid` to identify the merge request.
+By default, the MR is auto-detected from the current git branch (via `glab mr view`). Override with `--mr-url` or `--hostname`/`--project`/`--mr-iid`.
 
 ### read
 
-Read and display MR discussions.
+Read MR discussions. Prints to stdout by default, or writes per-thread files with `--dump`. In non-interactive environments (AI agents, piped output), `--dump` is the default.
 
 ```bash
-glab-discussion read --mr-url https://gitlab.com/group/project/-/merge_requests/123
-glab-discussion read --dump          # structured data output
-glab-discussion read --dump --full   # force full rewrite
+glab-discussion read                 # auto-detect MR from git branch
+glab-discussion read --dump          # one file per thread, incrementally updated
+glab-discussion read --dump --full   # clear and rewrite all files
+glab-discussion read --no-dump       # force stdout even in non-interactive mode
 ```
 
 ### write
 
-Create a new discussion or reply to an existing one.
+Create a new discussion, reply to a thread, or add an inline diff note.
 
 ```bash
-glab-discussion write --body "Comment text" --mr-url ...
-glab-discussion write --body "Reply" --reply-to DISCUSSION_ID --mr-url ...
-glab-discussion write --body "Diff note" --file path/to/file.py --new-line 42 --mr-url ...
-echo "From stdin" | glab-discussion write --body - --mr-url ...
+glab-discussion write --body "Comment text"
+glab-discussion write --reply-to DISCUSSION_ID --body "Reply"
+glab-discussion write --file path/to/file.py --new-line 42 --body "Issue here"
+glab-discussion write --file path/to/file.py --old-line 10 --body "Was wrong"
+echo "From stdin" | glab-discussion write --body -
 ```
+
+`--new-line` corresponds to the file on the MR source branch — if the branch is checked out locally, local file line numbers match directly. `--old-line` refers to the target branch version.
 
 ### diff
 
-Show MR diff information.
+Show the MR diff annotated with old/new line numbers, so you know which line numbers to use with `write --new-line` or `--old-line`.
 
 ```bash
-glab-discussion diff --mr-url ...
-glab-discussion diff --file path/to/file.py --mr-url ...
-glab-discussion diff --version 3 --mr-url ...
+glab-discussion diff
+glab-discussion diff --file path/to/file.py
+glab-discussion diff --version 3
 ```
 
 ### resolve
@@ -69,8 +73,8 @@ glab-discussion diff --version 3 --mr-url ...
 Resolve or unresolve a discussion.
 
 ```bash
-glab-discussion resolve DISCUSSION_ID --mr-url ...
-glab-discussion resolve DISCUSSION_ID --unresolve --mr-url ...
+glab-discussion resolve DISCUSSION_ID
+glab-discussion resolve DISCUSSION_ID --unresolve
 ```
 
 ## Requirements
