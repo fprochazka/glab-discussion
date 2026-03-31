@@ -5,6 +5,29 @@ import subprocess
 from typing import Any
 
 
+def _parse_paginated_json(text: str) -> list:
+    """Parse concatenated JSON arrays from glab api --paginate.
+
+    When paginating, glab concatenates one JSON array per page, e.g. '[...][...]'.
+    This parses each array and merges them into a single list.
+    """
+    decoder = json.JSONDecoder()
+    results: list = []
+    idx = 0
+    text = text.strip()
+    while idx < len(text):
+        obj, end = decoder.raw_decode(text, idx)
+        if isinstance(obj, list):
+            results.extend(obj)
+        else:
+            results.append(obj)
+        idx = end
+        # skip whitespace between concatenated values
+        while idx < len(text) and text[idx] in " \t\n\r":
+            idx += 1
+    return results
+
+
 class GlabApiError(Exception):
     def __init__(self, message: str, stderr: str = "", returncode: int = 1):
         super().__init__(message)
@@ -52,6 +75,9 @@ def glab_api(
 
     if not result.stdout.strip():
         return None
+
+    if paginate:
+        return _parse_paginated_json(result.stdout)
     return json.loads(result.stdout)
 
 
