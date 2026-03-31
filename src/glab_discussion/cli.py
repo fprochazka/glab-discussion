@@ -43,6 +43,15 @@ def main(argv: list[str] | None = None) -> None:
     resolve_parser.add_argument("discussion_id", help="Discussion ID to resolve")
     resolve_parser.add_argument("--unresolve", action="store_true", default=False, help="Unresolve instead of resolve")
 
+    # --- delete ---
+    delete_parser = subparsers.add_parser("delete", parents=[mr_parent], help="Delete a note")
+    delete_parser.add_argument("note_id", type=int, help="Note ID to delete")
+
+    # --- edit ---
+    edit_parser = subparsers.add_parser("edit", parents=[mr_parent], help="Edit a note")
+    edit_parser.add_argument("note_id", type=int, help="Note ID to edit")
+    edit_parser.add_argument("--body", required=True, help='New note body text (use "-" for stdin)')
+
     args = parser.parse_args(argv)
 
     if args.command == "read":
@@ -59,6 +68,14 @@ def main(argv: list[str] | None = None) -> None:
         run(args)
     elif args.command == "resolve":
         from glab_discussion.commands.resolve import run
+
+        run(args)
+    elif args.command == "delete":
+        from glab_discussion.commands.delete import run
+
+        run(args)
+    elif args.command == "edit":
+        from glab_discussion.commands.edit import run
 
         run(args)
     else:

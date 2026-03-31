@@ -3,9 +3,9 @@ name: glab-discussion
 description: >-
   This skill should be used when the user asks to "read MR discussions",
   "list MR comments", "reply to a discussion", "resolve a discussion",
-  "add a diff note", "review MR comments", "dump discussions",
-  "show MR diff for commenting", or needs to interact with GitLab merge request
-  discussions. Provides CLI reference for the glab-discussion tool.
+  "edit a comment", "delete a comment", "add a diff note", "review MR comments",
+  "dump discussions", "show MR diff for commenting", or needs to interact with
+  GitLab merge request discussions. Provides CLI reference for the glab-discussion tool.
 ---
 
 # glab-discussion CLI
@@ -93,6 +93,19 @@ glab-discussion resolve <discussion_id>
 glab-discussion resolve <discussion_id> --unresolve
 ```
 
+### edit — Edit an existing note
+
+```bash
+glab-discussion edit <note_id> --body "Updated text"
+glab-discussion edit <note_id> --body -                          # read body from stdin
+```
+
+### delete — Delete a note
+
+```bash
+glab-discussion delete <note_id>
+```
+
 ## Resolving GitLab UI URLs
 
 GitLab UI links to specific notes use `#note_<id>` anchors (e.g.
@@ -113,6 +126,8 @@ and also in the filename suffix.
 3. **Check diff context:** `glab-discussion diff --file <path>` to see commentable lines
 4. **Reply:** `glab-discussion write --reply-to <id> --body "..."`
 5. **Add diff note:** `glab-discussion write --file <path> --new-line <n> --body "..."`
-6. **Resolve:** `glab-discussion resolve <id>`
-7. **Re-read:** `glab-discussion read` to see updated state (incremental, only changed files)
+6. **Edit a note:** `glab-discussion edit <note_id> --body "..."`
+7. **Delete a note:** `glab-discussion delete <note_id>`
+8. **Resolve:** `glab-discussion resolve <id>`
+9. **Re-read:** `glab-discussion read` to see updated state (incremental, only changed files)
 

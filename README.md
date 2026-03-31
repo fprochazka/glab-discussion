@@ -77,6 +77,23 @@ glab-discussion resolve DISCUSSION_ID
 glab-discussion resolve DISCUSSION_ID --unresolve
 ```
 
+### edit
+
+Edit an existing note's body.
+
+```bash
+glab-discussion edit NOTE_ID --body "Updated text"
+echo "From stdin" | glab-discussion edit NOTE_ID --body -
+```
+
+### delete
+
+Delete a note.
+
+```bash
+glab-discussion delete NOTE_ID
+```
+
 ## Requirements
 
 - [`glab` CLI](https://docs.gitlab.com/cli/) installed and authenticated
