@@ -14,7 +14,10 @@ uv tool install glab-discussion
 
 ### Claude Code plugin
 
-The repo includes a Claude Code plugin with a skill that teaches AI agents how to use `glab-discussion`.
+The repo includes a Claude Code plugin with:
+
+- a **skill** that teaches AI agents how to use `glab-discussion`
+- a **PreToolUse hook** that blocks `glab api .../discussions|notes` calls and `glab mr view --comments`, redirecting the agent to use `glab-discussion` instead. This keeps thread IDs, resolve state, and inline diff positions in scope rather than letting the agent wrangle raw API JSON.
 
 ```bash
 claude plugin marketplace add fprochazka/glab-discussion
