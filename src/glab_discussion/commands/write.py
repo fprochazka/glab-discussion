@@ -29,13 +29,13 @@ def run(args: argparse.Namespace) -> None:
     # 4. Determine mode and execute
     if args.reply_to:
         # Reply to existing discussion
-        glab_api(
+        result = glab_api(
             f"projects/{ctx.project_id}/merge_requests/{ctx.mr_iid}/discussions/{args.reply_to}/notes",
             method="POST",
             raw_fields={"body": body},
             hostname=ctx.hostname,
         )
-        print(f"Replied to discussion {args.reply_to}")
+        print(f"Replied to discussion {args.reply_to} - {ctx.mr_url}#note_{result['id']}")
 
     elif args.file:
         # Diff note mode - fetch versions to get SHAs
@@ -82,7 +82,8 @@ def run(args: argparse.Namespace) -> None:
         )
 
         line = args.new_line if args.new_line is not None else args.old_line
-        print(f"Created diff note on {args.file}:{line} (discussion {result['id']})")
+        note_id = result["notes"][0]["id"]
+        print(f"Created diff note on {args.file}:{line} (discussion {result['id']}) - {ctx.mr_url}#note_{note_id}")
 
     else:
         # New general discussion thread
@@ -92,4 +93,5 @@ def run(args: argparse.Namespace) -> None:
             raw_fields={"body": body},
             hostname=ctx.hostname,
         )
-        print(f"Created discussion {result['id']}")
+        note_id = result["notes"][0]["id"]
+        print(f"Created discussion {result['id']} - {ctx.mr_url}#note_{note_id}")
