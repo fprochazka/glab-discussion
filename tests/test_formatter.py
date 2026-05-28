@@ -1,7 +1,13 @@
 from __future__ import annotations
 
 from glab_discussion.formatter import format_discussion, format_discussions
-from glab_discussion.models import Discussion, Note, Position
+from glab_discussion.models import (
+    Discussion,
+    LineRange,
+    LineRangeEndpoint,
+    Note,
+    Position,
+)
 
 MR_URL = "https://gitlab.com/group/project/-/merge_requests/42"
 
@@ -100,6 +106,41 @@ class TestFormatDiscussion:
         disc = Discussion(id="bothlines123", individual_note=False, notes=[note])
         result = format_discussion(disc, MR_URL)
         assert "Line: new:15 / old:10" in result
+
+    def test_diff_note_with_line_range(self) -> None:
+        pos = Position(
+            base_sha="aaa",
+            head_sha="bbb",
+            start_sha="aaa",
+            old_path="file.py",
+            new_path="file.py",
+            position_type="text",
+            old_line=None,
+            new_line=60,
+            line_range=LineRange(
+                start=LineRangeEndpoint(old_line=47, new_line=47),
+                end=LineRangeEndpoint(old_line=None, new_line=59),
+            ),
+        )
+        note = Note(
+            id=102,
+            author_username="erin",
+            author_id=5,
+            is_bot=False,
+            body="Range comment",
+            created_at="2025-01-15T12:00:00.000Z",
+            updated_at="2025-01-15T12:00:00.000Z",
+            system=False,
+            resolvable=True,
+            resolved=False,
+            note_type="DiffNote",
+            position=pos,
+        )
+        disc = Discussion(id="range123", individual_note=False, notes=[note])
+        result = format_discussion(disc, MR_URL)
+        assert "Lines: new:47 / old:47 to new:59" in result
+        assert "Commit: bbb" in result
+        assert "Line:" not in result
 
 
 class TestFormatDiscussions:

@@ -3,6 +3,16 @@ from __future__ import annotations
 from glab_discussion.models import Discussion
 
 
+def _format_endpoint(old_line: int | None, new_line: int | None) -> str:
+    """Format a single (old_line, new_line) pair as e.g. "new:47" or "old:10"."""
+    parts: list[str] = []
+    if new_line is not None:
+        parts.append(f"new:{new_line}")
+    if old_line is not None:
+        parts.append(f"old:{old_line}")
+    return " / ".join(parts)
+
+
 def format_discussion(discussion: Discussion, mr_url: str) -> str:
     """Format a discussion as a TXT block."""
     lines: list[str] = []
@@ -16,13 +26,14 @@ def format_discussion(discussion: Discussion, mr_url: str) -> str:
         lines.append("Type: DiffNote")
         pos = first.position
         lines.append(f"File: {pos.new_path}")
-        line_parts: list[str] = []
-        if pos.new_line is not None:
-            line_parts.append(f"new:{pos.new_line}")
-        if pos.old_line is not None:
-            line_parts.append(f"old:{pos.old_line}")
-        if line_parts:
-            lines.append(f"Line: {' / '.join(line_parts)}")
+        if pos.line_range is not None:
+            start = _format_endpoint(pos.line_range.start.old_line, pos.line_range.start.new_line)
+            end = _format_endpoint(pos.line_range.end.old_line, pos.line_range.end.new_line)
+            lines.append(f"Lines: {start} to {end}")
+        else:
+            line = _format_endpoint(pos.old_line, pos.new_line)
+            if line:
+                lines.append(f"Line: {line}")
         lines.append(f"Commit: {pos.head_sha}")
     elif discussion.individual_note and discussion.is_system:
         lines.append("Type: System")

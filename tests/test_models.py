@@ -60,6 +60,40 @@ class TestParsePosition:
         assert pos.old_line == 10
         assert pos.new_line == 15
 
+    def test_parse_position_with_line_range(self) -> None:
+        data = {
+            "base_sha": "aaa",
+            "head_sha": "bbb",
+            "start_sha": "aaa",
+            "old_path": "x.py",
+            "new_path": "x.py",
+            "position_type": "text",
+            "old_line": None,
+            "new_line": 60,
+            "line_range": {
+                "start": {"old_line": 47, "new_line": 47},
+                "end": {"old_line": None, "new_line": 59},
+            },
+        }
+        pos = parse_position(data)
+        assert pos.line_range is not None
+        assert pos.line_range.start.old_line == 47
+        assert pos.line_range.start.new_line == 47
+        assert pos.line_range.end.old_line is None
+        assert pos.line_range.end.new_line == 59
+
+    def test_parse_position_without_line_range(self) -> None:
+        data = {
+            "base_sha": "aaa",
+            "head_sha": "bbb",
+            "start_sha": "aaa",
+            "old_path": "x.py",
+            "new_path": "x.py",
+            "new_line": 42,
+        }
+        pos = parse_position(data)
+        assert pos.line_range is None
+
 
 class TestParseNote:
     def test_parse_regular_note(self) -> None:

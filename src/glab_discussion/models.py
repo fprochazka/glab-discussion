@@ -13,6 +13,22 @@ class MrContext:
 
 
 @dataclass
+class LineRangeEndpoint:
+    """One end of a multi-line diff note range."""
+
+    old_line: int | None = None
+    new_line: int | None = None
+
+
+@dataclass
+class LineRange:
+    """Line range for a multi-line diff note."""
+
+    start: LineRangeEndpoint
+    end: LineRangeEndpoint
+
+
+@dataclass
 class Position:
     """Position data for DiffNote."""
 
@@ -24,6 +40,7 @@ class Position:
     position_type: str = "text"
     old_line: int | None = None
     new_line: int | None = None
+    line_range: LineRange | None = None
 
 
 @dataclass
@@ -82,8 +99,29 @@ class UserInfo:
     is_bot: bool
 
 
+def parse_line_range(data: dict) -> LineRange | None:
+    """Parse a line_range dict from the GitLab API into a LineRange dataclass."""
+    start = data.get("start")
+    end = data.get("end")
+    if not start or not end:
+        return None
+    return LineRange(
+        start=LineRangeEndpoint(
+            old_line=start.get("old_line"),
+            new_line=start.get("new_line"),
+        ),
+        end=LineRangeEndpoint(
+            old_line=end.get("old_line"),
+            new_line=end.get("new_line"),
+        ),
+    )
+
+
 def parse_position(data: dict) -> Position:
     """Parse a position dict from the GitLab API into a Position dataclass."""
+    line_range = None
+    if data.get("line_range"):
+        line_range = parse_line_range(data["line_range"])
     return Position(
         base_sha=data["base_sha"],
         head_sha=data["head_sha"],
@@ -93,6 +131,7 @@ def parse_position(data: dict) -> Position:
         position_type=data.get("position_type", "text"),
         old_line=data.get("old_line"),
         new_line=data.get("new_line"),
+        line_range=line_range,
     )
 
 
