@@ -9,7 +9,10 @@ fi
 
 REASON="Reading or writing MR discussions/notes via \`glab\` is blocked (matched: \`glab api .../discussions|notes\`, \`glab mr view --comments\`, or \`glab mr note\`). Use the \`glab-discussion\` CLI instead: \`glab-discussion read|write|diff|resolve|edit|delete\`. Run \`glab-discussion --help\` for usage, or load the \`glab-discussion\` skill."
 
-if printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+api\b.*merge_requests[^"'"'"']*/(discussions|notes)' \
+# Award emoji (reactions) live under the notes URL path but are not discussion
+# CRUD, and glab-discussion has no replacement command — let them through.
+if { printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+api\b.*merge_requests[^"'"'"']*/(discussions|notes)' \
+  && ! printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+api\b.*merge_requests[^"'"'"']*/award_emoji\b'; } \
   || printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+mr[[:space:]]+view\b.*--comments\b' \
   || printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+mr[[:space:]]+note\b'; then
   jq -n --arg reason "$REASON" '{
