@@ -68,6 +68,12 @@ run_case ALLOW 'glab mr create'
 run_case ALLOW 'glab mr approve 42'
 run_case ALLOW 'glab mr todo 42'
 
+# ---------------- ALLOW: award emoji (reactions) under notes ----------------
+run_case ALLOW 'glab api projects/123/merge_requests/5/notes/99/award_emoji -X POST -f name=recycle'
+run_case ALLOW 'glab api "projects/:id/merge_requests/20/notes/1996757/award_emoji" -f name=thumbsup'
+run_case ALLOW 'glab api projects/123/merge_requests/5/notes/99/award_emoji/7 -X DELETE'
+run_case ALLOW 'glab api projects/mygroup%2Fmyrepo/merge_requests/42/award_emoji'
+
 # ---------------- ALLOW: unrelated glab api calls ----------------
 run_case ALLOW 'glab api projects/mygroup%2Fmyrepo/merge_requests/42'
 run_case ALLOW 'glab api "projects/mygroup%2Fmyrepo"'
