@@ -44,3 +44,24 @@ jobs:
 
       - name: Run tests
         run: uv run pytest
+
+  hooks:
+    name: Plugin hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      # The PreToolUse hook decides with `bash-classify match`; the test suite needs it on
+      # PATH for its `real` mode and shims it away for the two degraded modes. `jq` is
+      # preinstalled on GitHub's ubuntu runners.
+      - name: Install bash-classify
+        run: |
+          uv tool install bash-classify
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run hook test suite
+        run: bash coding-agent-plugins/claude-code/hooks/test-block-glab-api-discussions.sh

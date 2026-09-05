@@ -1,0 +1,25 @@
+# Rules for `bash-classify match`, used by block-glab-api-discussions.sh.
+# Schema: https://github.com/fprochazka/bash-classify/schemas/match-rules.schema.json
+#
+# The shapes the glab-discussion PreToolUse hook denies: reading or writing merge
+# request discussions and notes through the raw API or through glab's own commands.
+# Agents are meant to use the glab-discussion CLI instead.
+#
+# `command` is a prefix match on the *resolved* command path, so a wrapper
+# (`sudo`, `timeout`, `bash -c`, `xargs`, `eval`) or an absolute binary path does not
+# evade a rule, while a heredoc body or an `echo` string that merely names one of these
+# commands is not an invocation and does not match.
+rules:
+  - name: mr-discussions-api
+    command: [glab, api]
+    any_arg_matches: 'merge_requests/[^/?]+/(discussions|notes)(/|\?|$)'
+
+  # `--resolved` and `--unresolved` imply `--comments` (glab 1.116.0), so they read the
+  # discussion threads just as much as the flag they imply.
+  - name: mr-view-comments
+    command: [glab, mr, view]
+    any_option: [--comments, -c, --resolved, --unresolved]
+
+  - name: mr-note
+    command: [glab, mr, note]
+    except: [[glab, mr, note, list]]

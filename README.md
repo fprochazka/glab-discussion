@@ -17,7 +17,7 @@ uv tool install glab-discussion
 The repo includes a Claude Code plugin with:
 
 - a **skill** that teaches AI agents how to use `glab-discussion`
-- a **PreToolUse hook** that blocks `glab api .../discussions|notes` calls and `glab mr view --comments`, redirecting the agent to use `glab-discussion` instead. This keeps thread IDs, resolve state, and inline diff positions in scope rather than letting the agent wrangle raw API JSON.
+- a **PreToolUse hook** that blocks three command shapes and redirects the agent to `glab-discussion` instead. This keeps thread IDs, resolve state, and inline diff positions in scope rather than letting the agent wrangle raw API JSON.
 
 ```bash
 claude plugin marketplace add fprochazka/glab-discussion
@@ -28,9 +28,22 @@ To upgrade after a new release:
 
 ```bash
 uv tool install --force glab-discussion
+uv tool install --force bash-classify
 claude plugin marketplace update fprochazka-glab-discussion
 claude plugin update glab-discussion@fprochazka-glab-discussion
 ```
+
+The hook blocks:
+
+| Rule | Shape |
+|---|---|
+| `mr-discussions-api` | `glab api` against a merge request's `discussions` or `notes` sub-resource |
+| `mr-view-comments` | `glab mr view --comments`, its `-c` short form, and `--resolved` / `--unresolved`, which imply it |
+| `mr-note` | `glab mr note`, except the read-only `glab mr note list` |
+
+The verdict comes from [`bash-classify`](https://github.com/fprochazka/bash-classify), which parses the command and reports which of those shapes it actually *invokes*. Text that merely names one — a heredoc body, an `echo` argument, a commit message, a `grep` pattern — is not an invocation and is allowed, while a wrapper (`sudo`, `timeout`, `bash -c`, `xargs`) does not hide one.
+
+Without bash-classify the hook still works, but in a degraded mode: it falls back to matching the raw command text. That is wrong in both directions — it denies anything that so much as mentions a blocked command, and it lets `glab mr view 42 -c` through, because the old pattern only ever knew the long `--comments` spelling. Every deny issued that way says so in its reason, so the agent can tell you to install or upgrade the tool.
 
 ## Usage
 
@@ -101,6 +114,15 @@ glab-discussion delete NOTE_ID
 
 - [`glab` CLI](https://docs.gitlab.com/cli/) installed and authenticated
 - Python 3.12+
+
+The Claude Code plugin's hook additionally needs:
+
+- `jq`
+- [`bash-classify`](https://github.com/fprochazka/bash-classify) 0.10.0 or newer. Without it the hook still runs, but falls back to text patterns that can misfire: they deny commands that only mention a blocked command in a heredoc, a commit message or a `grep` pattern.
+
+```bash
+uv tool install bash-classify
+```
 
 ## Development
 
