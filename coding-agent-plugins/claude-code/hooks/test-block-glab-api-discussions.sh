@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Test suite for block-glab-api-discussions.sh.
+# Test suite for block-glab-api-discussions.sh and check-bash-classify.sh.
 #
 # Every case is run in three environments, because the hook has to behave sensibly in all
 # of them:
@@ -13,17 +13,27 @@
 # not a bug in the test, they are the degraded behaviour being pinned — and every deny
 # from the fallback has to carry a note telling the agent why.
 #
+# The SessionStart hook is checked in the same three environments — silent in `real`, and
+# advising the agent in the other two — plus a fourth where the binary answers `--version`
+# with something no version can be read from.
+#
 # Exits non-zero if any case fails.
 
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$HERE/block-glab-api-discussions.sh"
+CHECK="$HERE/check-bash-classify.sh"
 CASES="$HERE/test-cases"
 MIN_VERSION="0.10.0"
 
 if [ ! -x "$HOOK" ]; then
   echo "hook not executable: $HOOK" >&2
+  exit 2
+fi
+
+if [ ! -x "$CHECK" ]; then
+  echo "hook not executable: $CHECK" >&2
   exit 2
 fi
 
@@ -70,6 +80,19 @@ JSON
 STUB
 chmod +x "$TMP/bin-old/bash-classify"
 
+mkdir -p "$TMP/bin-badversion"
+cat > "$TMP/bin-badversion/bash-classify" <<'STUB'
+#!/usr/bin/env bash
+# A binary whose --version output carries no version number. Unknown is not "new enough".
+if [ "${1:-}" = "--version" ]; then
+  echo "bash-classify (development build)"
+  exit 0
+fi
+cat > /dev/null
+echo '{"matches":[],"parse_warnings":[]}'
+STUB
+chmod +x "$TMP/bin-badversion/bash-classify"
+
 version_ge() {
   [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]
 }
@@ -115,7 +138,7 @@ _check() {
 
   if [ -n "$out" ]; then got=BLOCK; else got=ALLOW; fi
   if [ "$got" != "$expect" ]; then
-    problem="expected $expect"
+    problem="${problem:+$problem; }expected $expect"
   fi
 
   if [ "$got" = "BLOCK" ] && [ -z "$problem" ]; then
@@ -130,10 +153,10 @@ _check() {
         real)
           case "$reason" in
             *"(matched rule:"*) ;;
-            *) problem="deny reason does not name the matched rule" ;;
+            *) problem="${problem:+$problem; }deny reason does not name the matched rule" ;;
           esac
           case "$reason" in
-            *"Note:"*) problem="deny in real mode carries a degraded-mode note" ;;
+            *"Note:"*) problem="${problem:+$problem; }deny in real mode carries a degraded-mode note" ;;
           esac
           ;;
         old)
@@ -159,6 +182,51 @@ _check() {
     fail=$((fail + 1))
     mode_fail=$((mode_fail + 1))
     printf '[FAIL] %-5s %-6s | %s\n       %s\n' "$MODE" "$got" "$label" "$problem"
+  fi
+}
+
+# _session_check EXPECT
+#
+# EXPECT is QUIET (no output at all) or SAY+<substring the additionalContext must carry>.
+_session_check() {
+  local expect="$1" want="" out rc ctx problem=""
+
+  case "$expect" in
+    SAY+*)
+      want="${expect#SAY+}"
+      expect="SAY"
+      ;;
+  esac
+
+  out=$("$CHECK" 2>/dev/null)
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    problem="hook exited $rc (it must always exit 0)"
+  fi
+
+  if [ "$expect" = "QUIET" ]; then
+    [ -n "$out" ] && problem="${problem:+$problem; }expected no output, got: $out"
+  elif [ -z "$out" ]; then
+    problem="${problem:+$problem; }expected advice mentioning '$want', got no output"
+  else
+    ctx=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null)
+    if [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.hookEventName // ""' 2>/dev/null)" != "SessionStart" ]; then
+      problem="${problem:+$problem; }output is not a SessionStart hookSpecificOutput"
+    else
+      case "$ctx" in
+        *"$want"*) ;;
+        *) problem="${problem:+$problem; }advice does not mention '$want'" ;;
+      esac
+    fi
+  fi
+
+  if [ -z "$problem" ]; then
+    pass=$((pass + 1))
+    printf '[ok]   %-5s %-6s | %s\n' "$MODE" "$expect" "check-bash-classify.sh"
+  else
+    fail=$((fail + 1))
+    mode_fail=$((mode_fail + 1))
+    printf '[FAIL] %-5s %-6s | %s\n       %s\n' "$MODE" "$expect" "check-bash-classify.sh" "$problem"
   fi
 }
 
@@ -323,6 +391,11 @@ for MODE in real old none; do
   mode_fail=0
   echo "================ mode: $MODE ================"
   all_cases
+  case "$MODE" in
+    real) _session_check QUIET ;;
+    old) _session_check 'SAY+is outdated' ;;
+    none) _session_check 'SAY+it is not installed' ;;
+  esac
   echo "---------------- mode $MODE: $([ "$mode_fail" -eq 0 ] && echo "all cases passed" || echo "$mode_fail failed")"
   echo
 done
@@ -330,6 +403,22 @@ done
 PATH="$REAL_PATH"
 HOME="$REAL_HOME"
 export PATH HOME
+
+# ---------------------------------------------------------------- unparseable version
+
+# A binary that answers --version with something this hook cannot read is treated as too
+# old: it cannot prove otherwise.
+echo "================ mode: unparseable-version ================"
+MODE="badver"
+mode_fail=0
+PATH="$TMP/bin-badversion:$CLEAN_PATH"
+HOME="$TMP/home-empty"
+export PATH HOME
+_session_check 'SAY+version could not be read'
+PATH="$REAL_PATH"
+HOME="$REAL_HOME"
+export PATH HOME
+echo
 
 # ---------------------------------------------------------------- broken rules file
 

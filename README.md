@@ -43,7 +43,7 @@ The hook blocks:
 
 The verdict comes from [`bash-classify`](https://github.com/fprochazka/bash-classify), which parses the command and reports which of those shapes it actually *invokes*. Text that merely names one — a heredoc body, an `echo` argument, a commit message, a `grep` pattern — is not an invocation and is allowed, while a wrapper (`sudo`, `timeout`, `bash -c`, `xargs`) does not hide one.
 
-Without bash-classify the hook still works, but in a degraded mode: it falls back to matching the raw command text. That is wrong in both directions — it denies anything that so much as mentions a blocked command, and it lets `glab mr view 42 -c` through, because the old pattern only ever knew the long `--comments` spelling. Every deny issued that way says so in its reason, so the agent can tell you to install or upgrade the tool.
+Without bash-classify the hook still works, but in a degraded mode: it falls back to matching the raw command text. That is wrong in both directions — it denies anything that so much as mentions a blocked command, and it lets `glab mr view 42 -c` through, because the old pattern only ever knew the long `--comments` spelling. Every deny issued that way says so in its reason, and a SessionStart hook says the same thing once at the start of a session, so the agent can tell you to install or upgrade the tool (plugin SessionStart hooks need Claude Code 2.1.257 or newer; versions 2.1.216 to 2.1.252 silently skipped them).
 
 ## Usage
 
