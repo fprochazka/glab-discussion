@@ -15,8 +15,9 @@ def run(args: argparse.Namespace) -> None:
     body = sys.stdin.read() if args.body == "-" else args.body
 
     # 3. Validate mutually exclusive options
-    if args.reply_to and args.file:
-        print("Error: --reply-to and --file are mutually exclusive", file=sys.stderr)
+    modes = [name for name, on in (("--reply-to", args.reply_to), ("--file", args.file), ("--note", args.note)) if on]
+    if len(modes) > 1:
+        print(f"Error: {' and '.join(modes)} are mutually exclusive", file=sys.stderr)
         sys.exit(1)
 
     if args.file and args.new_line is None and args.old_line is None:
@@ -27,7 +28,18 @@ def run(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     # 4. Determine mode and execute
-    if args.reply_to:
+    if args.note:
+        # Plain note: an individual comment with no thread, so nobody has to resolve it.
+        # The right shape for a summary or a status line, never for a finding.
+        result = glab_api(
+            f"projects/{ctx.project_id}/merge_requests/{ctx.mr_iid}/notes",
+            method="POST",
+            raw_fields={"body": body},
+            hostname=ctx.hostname,
+        )
+        print(f"Created note {result['id']} - {ctx.mr_url}#note_{result['id']}")
+
+    elif args.reply_to:
         # Reply to existing discussion
         result = glab_api(
             f"projects/{ctx.project_id}/merge_requests/{ctx.mr_iid}/discussions/{args.reply_to}/notes",

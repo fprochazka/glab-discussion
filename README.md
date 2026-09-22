@@ -62,15 +62,18 @@ glab-discussion read --no-dump       # force stdout even in non-interactive mode
 
 ### write
 
-Create a new discussion, reply to a thread, or add an inline diff note.
+Create a new discussion, reply to a thread, add an inline diff note, or post a plain note.
 
 ```bash
 glab-discussion write --body "Comment text"
 glab-discussion write --reply-to DISCUSSION_ID --body "Reply"
 glab-discussion write --file path/to/file.py --new-line 42 --body "Issue here"
 glab-discussion write --file path/to/file.py --old-line 10 --body "Was wrong"
+glab-discussion write --note --body "Review summary"
 echo "From stdin" | glab-discussion write --body -
 ```
+
+`--note` posts an individual note rather than a discussion thread. It has no resolve button, so it suits a summary or a status update; a finding someone has to act on belongs in a thread.
 
 `--new-line` corresponds to the file on the MR source branch — if the branch is checked out locally, local file line numbers match directly. `--old-line` refers to the target branch version.
 

@@ -61,12 +61,15 @@ start_sha: <sha>
    43 |  43 |      var z = 3;
 ```
 
-### write — Create discussion, reply, or diff note
+### write — Create discussion, reply, diff note, or plain note
 
 ```bash
 # New general discussion thread
 glab-discussion write --body "Starting a thread"
 glab-discussion write --body -                          # read body from stdin
+
+# Plain note: no thread, nothing to resolve (a summary, a status line)
+glab-discussion write --note --body "Review summary"
 
 # Reply to existing thread
 glab-discussion write --reply-to <discussion_id> --body "My reply"
@@ -80,7 +83,8 @@ glab-discussion write --file src/Foo.java --new-line 42 --commit <sha> --body "O
 **Modes** (mutually exclusive):
 - `--reply-to <discussion_id>` — reply to an existing thread
 - `--file <path>` — create a diff note (requires `--new-line` and/or `--old-line`)
-- Neither — create a new general discussion thread
+- `--note` — post an individual note with no thread; it cannot be resolved, so use it for a summary or a status update, never for a finding
+- None of them — create a new general discussion thread
 
 **Line numbers:** `--new-line` corresponds to the file on the MR source branch (HEAD).
 If the source branch is checked out locally, local file line numbers match `--new-line` directly —

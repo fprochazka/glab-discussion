@@ -25,9 +25,17 @@ def main(argv: list[str] | None = None) -> None:
     read_parser.add_argument("--full", action="store_true", default=False, help="Force full rewrite (only with --dump)")
 
     # --- write ---
-    write_parser = subparsers.add_parser("write", parents=[mr_parent], help="Create a new discussion or reply")
+    write_parser = subparsers.add_parser(
+        "write", parents=[mr_parent], help="Create a new discussion, reply, or plain note"
+    )
     write_parser.add_argument("--body", required=True, help='Note body text (use "-" for stdin)')
     write_parser.add_argument("--reply-to", metavar="DISCUSSION_ID", help="Reply to an existing discussion")
+    write_parser.add_argument(
+        "--note",
+        action="store_true",
+        default=False,
+        help="Post a plain note instead of a thread: an individual comment that cannot be resolved",
+    )
     write_parser.add_argument("--file", help="File path for a diff note")
     write_parser.add_argument("--new-line", type=int, help="New-side line number for diff note")
     write_parser.add_argument("--old-line", type=int, help="Old-side line number for diff note")
