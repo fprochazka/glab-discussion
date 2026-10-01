@@ -178,6 +178,20 @@ class TestDraftEnvVar:
         run(_args())
         assert mock_api.call_args.args[0] == "projects/42/merge_requests/7/draft_notes"
 
+    def test_env_draft_says_why(self, capsys, monkeypatch, mock_api) -> None:
+        monkeypatch.setenv("GLAB_DISCUSSION_WRITE_AS_DRAFT", "true")
+        run(_args())
+        assert capsys.readouterr().out.splitlines()[1] == (
+            "Written as a draft because GLAB_DISCUSSION_WRITE_AS_DRAFT is set. Pass --no-draft to post it right away."
+        )
+
+    def test_explicit_draft_does_not_mention_env(self, capsys, monkeypatch, mock_api) -> None:
+        monkeypatch.setenv("GLAB_DISCUSSION_WRITE_AS_DRAFT", "true")
+        run(_args(draft=True))
+        out = capsys.readouterr().out
+        assert "Created draft:501" in out
+        assert "GLAB_DISCUSSION_WRITE_AS_DRAFT" not in out
+
     @pytest.mark.parametrize("value", ["false", "0", "no", ""])
     def test_false_values_publish(self, monkeypatch, mock_api, value: str) -> None:
         monkeypatch.setenv("GLAB_DISCUSSION_WRITE_AS_DRAFT", value)

@@ -173,3 +173,6 @@ def _write_draft(args: argparse.Namespace, ctx: MrContext, body: str, resolve: b
     )
 
     print(f"Created draft:{result['id']} ({target}). Only you can see it until 'glab-discussion drafts publish'.")
+    if not getattr(args, "draft", False):
+        # The environment made this a draft, which the caller may not expect.
+        print(f"Written as a draft because {DRAFT_ENV_VAR} is set. Pass --no-draft to post it right away.")

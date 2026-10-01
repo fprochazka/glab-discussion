@@ -98,6 +98,7 @@ no need to run `glab-discussion diff` first. `--old-line` refers to the target b
 **Drafts:** add `--draft` to any mode to write a pending draft instead of a published comment. The output prints the
 new ID as `draft:<id>` (published comments print `note:<id>`). With a draft reply, `--resolve` resolves the thread when the draft
 is published. `GLAB_DISCUSSION_WRITE_AS_DRAFT=true` makes `--draft` the default; `--no-draft` overrides it.
+When the variable made the comment a draft, the output says so on a second line.
 See "Giving a review" below for when to use drafts.
 
 ### resolve — Resolve/unresolve a discussion
