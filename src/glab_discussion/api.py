@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from typing import Any
 
@@ -28,11 +29,24 @@ def _parse_paginated_json(text: str) -> list:
     return results
 
 
+_HTTP_STATUS_RE = re.compile(r"\bHTTP (\d{3})\b")
+
+
 class GlabApiError(Exception):
     def __init__(self, message: str, stderr: str = "", returncode: int = 1):
         super().__init__(message)
         self.stderr = stderr
         self.returncode = returncode
+
+    @property
+    def http_status(self) -> int | None:
+        """HTTP status of the failed request, or None when glab failed before getting a response.
+
+        glab exits 1 for every failure and reports the status only in stderr, as
+        `glab: <message> (HTTP 404)` or `glab: HTTP 404`.
+        """
+        match = _HTTP_STATUS_RE.search(self.stderr)
+        return int(match.group(1)) if match else None
 
 
 def glab_api(
@@ -79,6 +93,16 @@ def glab_api(
     if paginate:
         return _parse_paginated_json(result.stdout)
     return json.loads(result.stdout)
+
+
+def glab_graphql(query: str, variables: dict[str, Any], *, hostname: str | None = None) -> dict:
+    """Run a GraphQL query or mutation through `glab api graphql` and return its `data`.
+
+    glab exits non-zero when the response carries top-level `errors`, so those raise GlabApiError.
+    Errors a mutation reports in its own `errors` field are part of `data`.
+    """
+    result = glab_api("graphql", json_body={"query": query, "variables": variables}, hostname=hostname)
+    return (result or {}).get("data") or {}
 
 
 def glab_mr_view_json(hostname: str | None = None) -> dict:

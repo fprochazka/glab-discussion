@@ -23,7 +23,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RULES="$HERE/blocked-commands.yaml"
 MIN_VERSION="0.10.0"
 
-REASON="Reading or writing MR discussions/notes via \`glab\` is blocked (matched: \`glab api .../discussions|notes\`, \`glab mr view --comments\`, or \`glab mr note\`). Use the \`glab-discussion\` CLI instead: \`glab-discussion read|write|diff|resolve|edit|delete\`. Run \`glab-discussion --help\` for usage, or load the \`glab-discussion\` skill."
+REASON="Reading or writing MR discussions/notes via \`glab\` is blocked (matched: \`glab api .../discussions|notes|draft_notes\`, \`glab mr view --comments\`, or \`glab mr note\`). Use the \`glab-discussion\` CLI instead: \`glab-discussion read|write|diff|resolve|edit|delete|drafts\`. Run \`glab-discussion --help\` for usage, or load the \`glab-discussion\` skill."
 
 CMD=$(jq -r '.tool_input.command // empty')
 
@@ -42,11 +42,11 @@ deny() {
   exit 0
 }
 
-# Degraded mode: the pre-bash-classify text patterns, unchanged. They match the raw
+# Degraded mode: the pre-bash-classify text patterns. They match the raw
 # command text, so they also fire on text that only mentions a blocked command.
 fallback() {
   local note="$1"
-  if printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+api\b.*merge_requests[^"'"'"']*/(discussions|notes)' \
+  if printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+api\b.*merge_requests[^"'"'"']*/(discussions|notes|draft_notes)' \
     || printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+mr[[:space:]]+view\b.*--comments\b' \
     || printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+mr[[:space:]]+note\b'; then
     deny "$REASON

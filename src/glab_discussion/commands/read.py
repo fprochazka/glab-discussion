@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import tempfile
 from pathlib import Path
 
 from glab_discussion.api import glab_api
 from glab_discussion.context import resolve_mr_context
-from glab_discussion.formatter import format_discussion, format_discussions
-from glab_discussion.models import Discussion, UserInfo, parse_discussion
+from glab_discussion.formatter import format_discussion, format_discussions, format_draft_thread, group_drafts
+from glab_discussion.models import Discussion, UserInfo, parse_discussion, parse_draft_note
 from glab_discussion.sanitize import sanitize_filename_part, sanitize_path_part
 from glab_discussion.terminal import is_interactive_terminal
-from glab_discussion.users import display_name, enrich_discussions_with_bot_info
+from glab_discussion.users import display_name, enrich_discussions_with_bot_info, enrich_drafts_with_user_info
 
 
 def _discussion_filename(discussion: Discussion, user_cache: dict[int, UserInfo]) -> str:
@@ -26,25 +27,65 @@ def _discussion_filename(discussion: Discussion, user_cache: dict[int, UserInfo]
     return f"{dt}-{name}-{short_id}.txt"
 
 
+def _content_hash(content: str) -> str:
+    return hashlib.sha256(content.encode()).hexdigest()
+
+
+def _safe_dump_file(output_dir: Path, filename: str) -> Path | None:
+    """Return the path of a dump file named in .meta.json, or None if the name could point outside output_dir."""
+    if not filename or "/" in filename or "\\" in filename or filename.startswith("."):
+        return None
+    path = output_dir / filename
+    if path.resolve().parent != output_dir.resolve():
+        return None
+    return path
+
+
+def _load_meta(output_dir: Path, meta_path: Path) -> dict[str, dict]:
+    """Load .meta.json, hashing the existing files for entries written before content hashes were stored.
+
+    Entries written by older versions carry `max_timestamp` instead of `hash`. Hashing the file on disk
+    lets an unchanged thread stay unchanged instead of forcing a full rewrite. An entry whose file is
+    missing gets no hash, so its thread is written again.
+    """
+    if not meta_path.exists():
+        return {}
+    meta: dict[str, dict] = json.loads(meta_path.read_text())
+    for entry in meta.values():
+        if "hash" in entry:
+            continue
+        path = _safe_dump_file(output_dir, entry.get("filename", ""))
+        if path is not None and path.is_file():
+            entry["hash"] = _content_hash(path.read_text())
+    return meta
+
+
 def run(args: argparse.Namespace) -> None:
     # 1. Resolve MR context
     ctx = resolve_mr_context(args)
 
-    # 2. Fetch all discussions
+    # 2. Fetch all discussions and the caller's drafts
     raw_discussions = glab_api(
         f"projects/{ctx.project_id}/merge_requests/{ctx.mr_iid}/discussions",
+        paginate=True,
+        hostname=ctx.hostname,
+    )
+    raw_drafts = glab_api(
+        f"projects/{ctx.project_id}/merge_requests/{ctx.mr_iid}/draft_notes",
         paginate=True,
         hostname=ctx.hostname,
     )
 
     # 3. Parse discussions
     discussions = [parse_discussion(d) for d in raw_discussions]
+    drafts = [parse_draft_note(d) for d in raw_drafts or []]
 
     # 4. Filter out system discussions
     discussions = [d for d in discussions if not d.is_system]
 
     # 5. Enrich with bot info
     user_cache = enrich_discussions_with_bot_info(discussions, ctx.hostname)
+    enrich_drafts_with_user_info(drafts, ctx.hostname, user_cache)
 
     # 6. Determine dump mode
     if args.dump:
@@ -56,7 +97,7 @@ def run(args: argparse.Namespace) -> None:
 
     # 7. Stdout mode
     if not dump_mode:
-        print(format_discussions(discussions, ctx.mr_url))
+        print(format_discussions(discussions, ctx.mr_url, drafts))
         return
 
     # 8. Dump mode
@@ -72,50 +113,58 @@ def run(args: argparse.Namespace) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     meta_path = output_dir / ".meta.json"
-    if meta_path.exists():
-        old_meta: dict[str, dict] = json.loads(meta_path.read_text())
-    else:
-        old_meta = {}
+    old_meta = _load_meta(output_dir, meta_path)
+
+    # Each thread is (key, filename, content). The key is the discussion ID, or draft-{id} for a draft
+    # that starts a new thread; publishing the draft removes that key and adds the discussion's.
+    replies, standalone = group_drafts(discussions, drafts)
+    threads: list[tuple[str, str, str]] = []
+    for discussion in discussions:
+        content = format_discussion(discussion, ctx.mr_url, replies.get(discussion.id, ()))
+        threads.append((discussion.id, _discussion_filename(discussion, user_cache), content))
+    for draft in standalone:
+        threads.append((f"draft-{draft.id}", f"draft-{draft.id}.txt", format_draft_thread(draft)))
 
     new_meta: dict[str, dict] = {}
     new_files: list[str] = []
     updated_files: list[str] = []
+    stale_files: list[str] = []
 
-    for discussion in discussions:
-        filename = _discussion_filename(discussion, user_cache)
-        max_ts = discussion.max_timestamp
-        did = discussion.id
+    for key, filename, content in threads:
+        content_hash = _content_hash(content)
+        new_meta[key] = {"filename": filename, "hash": content_hash}
 
-        new_meta[did] = {"max_timestamp": max_ts, "filename": filename}
+        old_entry = old_meta.get(key)
+        if (
+            old_entry is not None
+            and old_entry.get("hash") == content_hash
+            and old_entry.get("filename") == filename
+            and (output_dir / filename).is_file()
+        ):
+            continue
 
-        # Check if we can skip (--full always writes since dir was cleared)
-        if did in old_meta:
-            old_entry = old_meta[did]
-            if old_entry.get("max_timestamp") == max_ts:
-                continue
-
-        # Write the file
-        content = format_discussion(discussion, ctx.mr_url)
         (output_dir / filename).write_text(content)
 
-        if did in old_meta:
-            updated_files.append(filename)
-        else:
+        if old_entry is None:
             new_files.append(filename)
+        else:
+            updated_files.append(filename)
+            if old_entry.get("filename") != filename:
+                stale_files.append(old_entry.get("filename", ""))
 
-    # Delete files for discussions that no longer exist
+    # Delete files of threads that no longer exist, and files a thread was renamed away from
     deleted_files: list[str] = []
-    for old_did, old_entry in old_meta.items():
-        if old_did not in new_meta:
-            old_filename = old_entry.get("filename", "")
-            if not old_filename or "/" in old_filename or "\\" in old_filename or old_filename.startswith("."):
-                continue
-            old_file = output_dir / old_filename
-            if old_file.resolve().parent != output_dir.resolve():
-                continue
-            if old_file.exists():
-                old_file.unlink()
-            deleted_files.append(old_filename)
+    for old_key, old_entry in old_meta.items():
+        if old_key not in new_meta:
+            stale_files.append(old_entry.get("filename", ""))
+    current_files = {entry["filename"] for entry in new_meta.values()}
+    for old_filename in stale_files:
+        old_file = _safe_dump_file(output_dir, old_filename)
+        if old_file is None or old_filename in current_files:
+            continue
+        if old_file.exists():
+            old_file.unlink()
+        deleted_files.append(old_filename)
 
     # Save updated meta
     meta_path.write_text(json.dumps(new_meta, indent=2) + "\n")
@@ -132,8 +181,8 @@ def run(args: argparse.Namespace) -> None:
             print(f"  new: {f}")
         for f in deleted_files:
             print(f"  deleted: {f}")
-        unchanged = len(discussions) - len(new_files) - len(updated_files)
+        unchanged = len(threads) - len(new_files) - len(updated_files)
         if unchanged > 0:
             print(f"  ({unchanged} discussions up to date)")
     else:
-        print(f"  ({len(discussions)} discussions up to date)")
+        print(f"  ({len(threads)} discussions up to date)")

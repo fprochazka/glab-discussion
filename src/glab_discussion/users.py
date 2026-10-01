@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from glab_discussion.api import glab_api
-from glab_discussion.models import Discussion, UserInfo
+from glab_discussion.models import Discussion, DraftNote, UserInfo
 from glab_discussion.sanitize import sanitize_path_part
 
 _CACHE_DIR = Path.home() / ".cache" / "glab-discussion"
@@ -65,3 +65,13 @@ def enrich_discussions_with_bot_info(discussions: list[Discussion], hostname: st
             note.is_bot = user_cache[note.author_id].is_bot
 
     return user_cache
+
+
+def enrich_drafts_with_user_info(drafts: list[DraftNote], hostname: str, user_cache: dict[int, UserInfo]) -> None:
+    """Populate author_username and is_bot on drafts, which the draft API returns only as author_id."""
+    for draft in drafts:
+        if draft.author_id not in user_cache:
+            user_cache[draft.author_id] = get_user_info(draft.author_id, hostname)
+        user = user_cache[draft.author_id]
+        draft.author_username = user.username
+        draft.is_bot = user.is_bot

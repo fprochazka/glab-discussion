@@ -48,14 +48,14 @@ class TestCli:
             main(["delete", "--help"])
         assert exc_info.value.code == 0
         captured = capsys.readouterr()
-        assert "note_id" in captured.out
+        assert "note:ID|draft:ID" in captured.out
 
     def test_edit_help(self, capsys) -> None:
         with pytest.raises(SystemExit) as exc_info:
             main(["edit", "--help"])
         assert exc_info.value.code == 0
         captured = capsys.readouterr()
-        assert "note_id" in captured.out
+        assert "note:ID|draft:ID" in captured.out
         assert "--body" in captured.out
 
     def test_delete_requires_note_id(self) -> None:
@@ -65,7 +65,43 @@ class TestCli:
 
     def test_edit_requires_body(self) -> None:
         with pytest.raises(SystemExit) as exc_info:
-            main(["edit", "123"])
+            main(["edit", "note:123"])
+        assert exc_info.value.code == 2
+
+    def test_edit_rejects_bare_number(self, capsys) -> None:
+        with pytest.raises(SystemExit) as exc_info:
+            main(["edit", "123", "--body", "x"])
+        assert exc_info.value.code == 2
+        assert "Ambiguous ID '123': pass 'note:123'" in capsys.readouterr().err
+
+    def test_delete_rejects_bare_number(self, capsys) -> None:
+        with pytest.raises(SystemExit) as exc_info:
+            main(["delete", "123"])
+        assert exc_info.value.code == 2
+        assert "'draft:123' for your pending draft" in capsys.readouterr().err
+
+    def test_write_draft_flags_are_exclusive(self) -> None:
+        with pytest.raises(SystemExit) as exc_info:
+            main(["write", "--body", "x", "--draft", "--no-draft"])
+        assert exc_info.value.code == 2
+
+    def test_drafts_requires_subcommand(self) -> None:
+        with pytest.raises(SystemExit) as exc_info:
+            main(["drafts"])
+        assert exc_info.value.code == 2
+
+    def test_drafts_publish_help(self, capsys) -> None:
+        with pytest.raises(SystemExit) as exc_info:
+            main(["drafts", "publish", "--help"])
+        assert exc_info.value.code == 0
+        captured = capsys.readouterr()
+        assert "--verdict" in captured.out
+        assert "approve" in captured.out
+        assert "--internal" not in captured.out
+
+    def test_drafts_publish_rejects_unknown_verdict(self) -> None:
+        with pytest.raises(SystemExit) as exc_info:
+            main(["drafts", "publish", "--verdict", "approved"])
         assert exc_info.value.code == 2
 
     def test_invalid_command(self) -> None:

@@ -274,6 +274,13 @@ all_cases() {
   run_case BLOCK BLOCK BLOCK 'cd /tmp && glab api "projects/:id/merge_requests/42/discussions" > /tmp/out.json 2>&1; echo EXIT=$?'
   run_case BLOCK BLOCK BLOCK 'glab  api  "projects/x/merge_requests/9/discussions"'
 
+  # ---------------- glab api against MR draft notes ----------------
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/draft_notes'
+  run_case BLOCK BLOCK BLOCK 'glab api "projects/:id/merge_requests/5/draft_notes?per_page=100"'
+  run_case BLOCK BLOCK BLOCK 'glab api -X POST projects/123/merge_requests/5/draft_notes -f note=hi'
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/draft_notes/77 -X DELETE'
+  run_case BLOCK BLOCK BLOCK 'glab api -X POST "projects/123/merge_requests/5/draft_notes/bulk_publish"'
+
   # ---------------- glab mr view --comments ----------------
   run_case BLOCK BLOCK BLOCK 'glab mr view 42 --comments'
   run_case BLOCK BLOCK BLOCK 'glab mr view 42 -R mygroup/myrepo --comments -F json'
@@ -341,6 +348,9 @@ all_cases() {
   run_case ALLOW ALLOW ALLOW 'git status'
   run_case ALLOW ALLOW ALLOW 'glab-discussion read'
   run_case ALLOW ALLOW ALLOW 'glab-discussion write --body "x"'
+  run_case ALLOW ALLOW ALLOW 'glab-discussion write --draft --body "x"'
+  run_case ALLOW ALLOW ALLOW 'glab-discussion drafts publish --verdict reviewed'
+  run_case ALLOW ALLOW ALLOW 'glab-discussion drafts delete --force'
   run_case ALLOW ALLOW ALLOW 'glab auth status'
   run_case ALLOW ALLOW ALLOW ''
 
@@ -348,6 +358,7 @@ all_cases() {
   # The whole point of matching on parsed commands: these are prose, not invocations.
   run_case ALLOW BLOCK BLOCK 'echo "use glab mr note 42 -m x instead of the API"'
   run_case ALLOW BLOCK BLOCK 'grep -rn "glab mr view --comments" ~/.claude/'
+  run_case ALLOW BLOCK BLOCK 'echo "glab api projects/1/merge_requests/2/draft_notes is blocked"'
 
   # ---------------- multi-line cases, one per file ----------------
   run_file BLOCK BLOCK BLOCK block/api-discussions-export-host-loop.sh

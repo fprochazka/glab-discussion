@@ -2,7 +2,7 @@
 # Schema: https://github.com/fprochazka/bash-classify/schemas/match-rules.schema.json
 #
 # The shapes the glab-discussion PreToolUse hook denies: reading or writing merge
-# request discussions and notes through the raw API or through glab's own commands.
+# request discussions, notes and draft notes through the raw API or through glab's own commands.
 # Agents are meant to use the glab-discussion CLI instead.
 #
 # `command` is a prefix match on the *resolved* command path, so a wrapper
@@ -12,7 +12,7 @@
 rules:
   - name: mr-discussions-api
     command: [glab, api]
-    any_arg_matches: 'merge_requests/[^/?]+/(discussions|notes)(/|\?|$)'
+    any_arg_matches: 'merge_requests/[^/?]+/(discussions|notes|draft_notes)(/|\?|$)'
 
   # `--resolved` and `--unresolved` imply `--comments` (glab 1.116.0), so they read the
   # discussion threads just as much as the flag they imply.

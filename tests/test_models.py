@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from glab_discussion.models import Discussion, Note, parse_discussion, parse_note, parse_position
+from glab_discussion.models import Discussion, Note, parse_discussion, parse_draft_note, parse_note, parse_position
 
 from .conftest import (
     SAMPLE_DIFF_NOTE_DATA,
@@ -206,14 +206,35 @@ class TestDiscussionProperties:
     def test_first_note(self, general_discussion: Discussion) -> None:
         assert general_discussion.first_note.id == 12345
 
-    def test_max_timestamp_single_note(self, general_discussion: Discussion) -> None:
-        assert general_discussion.max_timestamp == "2025-01-15T10:30:00.000Z"
 
-    def test_max_timestamp_multiple_notes(self, sample_note: Note, sample_diff_note: Note) -> None:
-        disc = Discussion(
-            id="multi123",
-            individual_note=False,
-            notes=[sample_note, sample_diff_note],
+class TestParseDraftNote:
+    def test_general_draft_ignores_empty_position(self) -> None:
+        draft = parse_draft_note(
+            {
+                "id": 5,
+                "author_id": 23,
+                "resolve_discussion": False,
+                "discussion_id": None,
+                "note": "Example",
+                "position": {"base_sha": None, "head_sha": None, "old_path": None, "new_path": None},
+            }
         )
-        # diff note has later timestamp (11:00 vs 10:30)
-        assert disc.max_timestamp == "2025-01-15T11:00:00.000Z"
+        assert draft.id == 5
+        assert draft.author_id == 23
+        assert draft.body == "Example"
+        assert draft.position is None
+        assert draft.is_reply is False
+
+    def test_reply_draft(self) -> None:
+        draft = parse_draft_note(
+            {"id": 6, "author_id": 23, "resolve_discussion": True, "discussion_id": "a" * 40, "note": "Done"}
+        )
+        assert draft.is_reply is True
+        assert draft.resolve_discussion is True
+
+    def test_inline_draft(self) -> None:
+        draft = parse_draft_note(
+            {"id": 7, "author_id": 23, "note": "Here", "position": SAMPLE_DIFF_NOTE_DATA["position"]}
+        )
+        assert draft.position is not None
+        assert draft.position.new_line == 42

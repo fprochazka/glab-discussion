@@ -1,6 +1,11 @@
 import argparse
 import sys
 
+from glab_discussion.ids import parse_note_ref
+
+NOTE_REF_METAVAR = "note:ID|draft:ID"
+NOTE_REF_HELP = "as 'read' prints it: note:123 for a published note, draft:123 for your pending draft"
+
 
 def main(argv: list[str] | None = None) -> None:
     # Shared parent parser for MR context flags
@@ -32,6 +37,26 @@ def main(argv: list[str] | None = None) -> None:
     write_parser.add_argument("--new-line", type=int, help="New-side line number for diff note")
     write_parser.add_argument("--old-line", type=int, help="Old-side line number for diff note")
     write_parser.add_argument("--commit", metavar="SHA", help="Commit SHA for diff note")
+    draft_group = write_parser.add_mutually_exclusive_group()
+    draft_group.add_argument(
+        "--draft",
+        action="store_true",
+        default=False,
+        help="Write a pending draft that only you see until 'drafts publish'"
+        " (default: the GLAB_DISCUSSION_WRITE_AS_DRAFT environment variable)",
+    )
+    draft_group.add_argument(
+        "--no-draft",
+        action="store_true",
+        default=False,
+        help="Publish the comment immediately, even if GLAB_DISCUSSION_WRITE_AS_DRAFT is true",
+    )
+    write_parser.add_argument(
+        "--resolve",
+        action="store_true",
+        default=False,
+        help="Resolve the thread when the draft is published (only with --reply-to and a draft)",
+    )
 
     # --- diff ---
     diff_parser = subparsers.add_parser("diff", parents=[mr_parent], help="Show MR diff information")
@@ -44,13 +69,47 @@ def main(argv: list[str] | None = None) -> None:
     resolve_parser.add_argument("--unresolve", action="store_true", default=False, help="Unresolve instead of resolve")
 
     # --- delete ---
-    delete_parser = subparsers.add_parser("delete", parents=[mr_parent], help="Delete a note")
-    delete_parser.add_argument("note_id", type=int, help="Note ID to delete")
+    delete_parser = subparsers.add_parser("delete", parents=[mr_parent], help="Delete a note or a draft")
+    delete_parser.add_argument(
+        "note_ref", type=parse_note_ref, metavar=NOTE_REF_METAVAR, help=f"ID to delete, {NOTE_REF_HELP}"
+    )
 
     # --- edit ---
-    edit_parser = subparsers.add_parser("edit", parents=[mr_parent], help="Edit a note")
-    edit_parser.add_argument("note_id", type=int, help="Note ID to edit")
+    edit_parser = subparsers.add_parser("edit", parents=[mr_parent], help="Edit a note or a draft")
+    edit_parser.add_argument(
+        "note_ref", type=parse_note_ref, metavar=NOTE_REF_METAVAR, help=f"ID to edit, {NOTE_REF_HELP}"
+    )
     edit_parser.add_argument("--body", required=True, help='New note body text (use "-" for stdin)')
+
+    # --- drafts ---
+    drafts_parser = subparsers.add_parser("drafts", help="Publish or delete your pending drafts")
+    drafts_subparsers = drafts_parser.add_subparsers(dest="drafts_command", required=True)
+
+    publish_parser = drafts_subparsers.add_parser(
+        "publish",
+        parents=[mr_parent],
+        help="Publish all your drafts as one review",
+        description="Publish all your drafts on the MR as one review, with one notification.",
+    )
+    publish_parser.add_argument(
+        "--body", help='Summary comment, added as a draft and published with the review (use "-" for stdin)'
+    )
+    publish_parser.add_argument(
+        "--verdict",
+        choices=["reviewed", "requested-changes", "approve"],
+        help="The verdict of the review. Adds you as a reviewer if you are not one. Needs GitLab 16.7 or newer."
+        " Default: reviewed, if you have not given the MR a verdict yet; otherwise --verdict is required.",
+    )
+
+    drafts_delete_parser = drafts_subparsers.add_parser(
+        "delete",
+        parents=[mr_parent],
+        help="Delete all your drafts",
+        description="List all your drafts on the MR. With --force, delete them.",
+    )
+    drafts_delete_parser.add_argument(
+        "--force", action="store_true", default=False, help="Delete the drafts instead of listing them"
+    )
 
     args = parser.parse_args(argv)
 
@@ -78,6 +137,14 @@ def main(argv: list[str] | None = None) -> None:
         from glab_discussion.commands.edit import run
 
         run(args)
+    elif args.command == "drafts" and args.drafts_command == "publish":
+        from glab_discussion.commands.drafts import run_publish
+
+        run_publish(args)
+    elif args.command == "drafts" and args.drafts_command == "delete":
+        from glab_discussion.commands.drafts import run_delete
+
+        run_delete(args)
     else:
         parser.print_help()
         sys.exit(1)

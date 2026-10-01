@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from glab_discussion.models import Discussion, Note, Position
+from glab_discussion.models import Discussion, MrContext, Note, Position
 
 SAMPLE_NOTE_DATA = {
     "id": 12345,
@@ -64,6 +64,20 @@ SAMPLE_DIFF = """@@ -10,7 +10,8 @@ class Foo:
 +        z = extra()
          return x
 """
+
+
+MR_URL = "https://gitlab.com/group/project/-/merge_requests/7"
+
+
+@pytest.fixture
+def mr_context() -> MrContext:
+    return MrContext(
+        hostname="gitlab.com",
+        project_id=42,
+        project_path="group/project",
+        mr_iid=7,
+        mr_url=MR_URL,
+    )
 
 
 @pytest.fixture

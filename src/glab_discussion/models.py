@@ -81,14 +81,27 @@ class Discussion:
     def first_note(self) -> Note:
         return self.notes[0]
 
+
+@dataclass
+class DraftNote:
+    """A pending review comment, visible only to its author until published.
+
+    The draft API returns no timestamps and only the author's ID, so `author_username`
+    and `is_bot` are filled in later from the user cache.
+    """
+
+    id: int
+    author_id: int
+    body: str
+    discussion_id: str | None  # set for a reply to an existing thread
+    resolve_discussion: bool
+    position: Position | None = None
+    author_username: str = "unknown"
+    is_bot: bool = False
+
     @property
-    def max_timestamp(self) -> str:
-        """MAX(created_at, updated_at) across all notes."""
-        timestamps: list[str] = []
-        for n in self.notes:
-            timestamps.append(n.created_at)
-            timestamps.append(n.updated_at)
-        return max(timestamps)
+    def is_reply(self) -> bool:
+        return bool(self.discussion_id)
 
 
 @dataclass
@@ -165,4 +178,27 @@ def parse_discussion(data: dict) -> Discussion:
         id=data["id"],
         individual_note=data.get("individual_note", False),
         notes=notes,
+    )
+
+
+def is_inline_draft_position(position: dict) -> bool:
+    """Whether a draft's position puts it on a diff line.
+
+    A draft that is not on a diff still carries a position object, with every SHA and path null.
+    """
+    return bool(position.get("base_sha") and (position.get("new_path") or position.get("old_path")))
+
+
+def parse_draft_note(data: dict) -> DraftNote:
+    """Parse a draft note dict from the GitLab draft notes API into a DraftNote dataclass."""
+    raw_position = data.get("position") or {}
+    position = parse_position(raw_position) if is_inline_draft_position(raw_position) else None
+
+    return DraftNote(
+        id=data["id"],
+        author_id=data.get("author_id", 0),
+        body=data.get("note") or "",
+        discussion_id=data.get("discussion_id") or None,
+        resolve_discussion=bool(data.get("resolve_discussion")),
+        position=position,
     )

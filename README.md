@@ -37,7 +37,7 @@ The hook blocks:
 
 | Rule | Shape |
 |---|---|
-| `mr-discussions-api` | `glab api` against a merge request's `discussions` or `notes` sub-resource |
+| `mr-discussions-api` | `glab api` against a merge request's `discussions`, `notes` or `draft_notes` sub-resource |
 | `mr-view-comments` | `glab mr view --comments`, its `-c` short form, and `--resolved` / `--unresolved`, which imply it |
 | `mr-note` | `glab mr note`, except the read-only `glab mr note list` |
 
@@ -60,6 +60,8 @@ glab-discussion read --dump --full   # clear and rewrite all files
 glab-discussion read --no-dump       # force stdout even in non-interactive mode
 ```
 
+Each note is printed with its ID as `(note:123)`. `read` also shows your own pending drafts, marked `[DRAFT]` with an ID like `(draft:45)`: a draft reply appears at the end of its thread, and a draft that starts a new thread gets its own file, `draft-45.txt`. GitLab shows drafts only to their author, so you never see anyone else's.
+
 ### write
 
 Create a new discussion, reply to a thread, or add an inline diff note.
@@ -73,6 +75,15 @@ echo "From stdin" | glab-discussion write --body -
 ```
 
 `--new-line` corresponds to the file on the MR source branch — if the branch is checked out locally, local file line numbers match directly. `--old-line` refers to the target branch version.
+
+Add `--draft` to write any of these as a pending draft instead. Drafts stay private until you publish them with `drafts publish`, which posts them all as one review with one notification, instead of one notification per comment. `--resolve` on a draft reply resolves the thread when the review is published.
+
+```bash
+glab-discussion write --draft --file path/to/file.py --new-line 42 --body "Issue here"
+glab-discussion write --draft --reply-to DISCUSSION_ID --resolve --body "Fixed, resolving"
+```
+
+Set `GLAB_DISCUSSION_WRITE_AS_DRAFT=true` to make `--draft` the default. It accepts `true`, `1`, `yes`, `false`, `0` and `no`; any other value is an error. `--no-draft` overrides it for one comment.
 
 ### diff
 
@@ -95,20 +106,55 @@ glab-discussion resolve DISCUSSION_ID --unresolve
 
 ### edit
 
-Edit an existing note's body.
+Edit the body of a note or of your draft. Pass the ID exactly as `read` prints it: `note:123` for a published note, `draft:45` for a draft. Draft IDs and note IDs are separate sequences and can be the same number on one MR, so a bare number is rejected.
 
 ```bash
-glab-discussion edit NOTE_ID --body "Updated text"
-echo "From stdin" | glab-discussion edit NOTE_ID --body -
+glab-discussion edit note:123 --body "Updated text"
+glab-discussion edit draft:45 --body "Updated draft"
+echo "From stdin" | glab-discussion edit note:123 --body -
 ```
 
 ### delete
 
-Delete a note.
+Delete a note or your draft. It takes the same `note:123` or `draft:45` IDs as `edit`.
 
 ```bash
-glab-discussion delete NOTE_ID
+glab-discussion delete note:123
+glab-discussion delete draft:45
 ```
+
+### drafts
+
+Publish or delete all your drafts on the MR at once.
+
+```bash
+glab-discussion drafts publish                                  # publish all drafts as one review, verdict reviewed
+glab-discussion drafts publish --body "Summary"                 # add a summary comment to the review
+glab-discussion drafts publish --verdict requested-changes      # give another verdict
+glab-discussion drafts publish --verdict approve                # publish and approve
+glab-discussion drafts delete                                   # list the drafts that would be deleted
+glab-discussion drafts delete --force                           # delete them
+```
+
+`--body` is added as one more general draft before publishing, so the summary is part of the review. Drafts cannot be internal, so there is no `--internal` option.
+
+A review always carries a verdict: `--verdict` takes `reviewed`, `requested-changes` or `approve`, and needs GitLab 16.7 or newer. The verdict makes you a reviewer with a review state, and that is what lets the MR author re-request your review after they change the MR.
+
+Without `--verdict`, the verdict is `reviewed`, but only if you have not given the MR a verdict yet. If you have already reviewed it, requested changes or approved it, `drafts publish` stops with an error and publishes nothing, so that it never replaces your earlier verdict silently: pass `--verdict` to say which verdict this review gives. With no drafts and no `--body`, `drafts publish` without `--verdict` fails with "nothing to publish" and does not change your review state.
+
+Your earlier verdict is read from the MR's activity, not from your review state, because GitLab sets the review state to "review started" as soon as you create a draft. The newest of these system notes decides: your own approval, request for changes or review means a verdict; your own "unapproved", or a review requested from you or a review request removed from you, means none. An approval that is still on the MR always counts. This works on every GitLab that supports `--verdict`. Before GitLab 17.10, a review leaves no system note, so an earlier `reviewed` is not found and the default gives the MR `reviewed` again.
+
+For every verdict:
+
+- If you are not a reviewer of the MR, `drafts publish` first adds you, because GitLab sets a review state only for reviewers. This adds a system note to the MR and can create a to-do item for you. If GitLab does not add you, for example because the MR allows only one reviewer and somebody else is the reviewer, nothing is published.
+- A new verdict replaces your previous one. GitLab before 19.2 does not do this on its own, so `drafts publish` first removes the previous verdict:
+  - If you approved the MR and the new verdict is not `approve`, it revokes your approval. This adds an "unapproved" system note to the MR.
+  - If the new verdict is not `requested-changes`, it removes your earlier request for changes, which otherwise keeps blocking the merge even after you mark the MR as reviewed. This needs GitLab EE 17.8 or newer. GitLab CE has no requests for changes that block the merge, so there is nothing to remove there.
+
+  If a removal fails, nothing is published.
+- The review is submitted with the `/submit_review` quick action. The command then reads the result back from GitLab and reports only what it confirmed. If the drafts were published but the verdict was not applied, it says so and exits with an error.
+
+`drafts delete --force` deletes the drafts one by one and retries each failure. If some drafts still fail, it lists them and exits with an error; run it again to delete only the drafts that are left.
 
 ## Requirements
 
