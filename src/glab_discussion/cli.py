@@ -7,7 +7,21 @@ NOTE_REF_METAVAR = "note:ID|draft:ID"
 NOTE_REF_HELP = "as 'read' prints it: note:123 for a published note, draft:123 for your pending draft"
 
 
+def _force_utf8_stdio() -> None:
+    """Bodies piped in with --body - and the discussions printed out are UTF-8, whatever the console code page is.
+
+    Without this, a cp1252 console (Windows default) makes Python mis-decode piped input and crash on emoji
+    or diacritics in the output. Streams replaced by test harnesses may lack reconfigure(); skip those.
+    """
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> None:
+    _force_utf8_stdio()
+
     # Shared parent parser for MR context flags
     mr_parent = argparse.ArgumentParser(add_help=False)
     mr_parent.add_argument("--mr-url", help="Full URL of the merge request")

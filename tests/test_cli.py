@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from glab_discussion.cli import main
@@ -108,3 +110,13 @@ class TestCli:
         with pytest.raises(SystemExit) as exc_info:
             main(["nonexistent"])
         assert exc_info.value.code == 2
+
+
+class TestStdioEncoding:
+    def test_main_forces_utf8_on_the_standard_streams(self) -> None:
+        streams = {name: MagicMock() for name in ("stdin", "stdout", "stderr")}
+        with patch.multiple("glab_discussion.cli.sys", **streams), pytest.raises(SystemExit):
+            main(["read", "--help"])
+
+        for stream in streams.values():
+            stream.reconfigure.assert_called_once_with(encoding="utf-8")

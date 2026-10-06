@@ -79,7 +79,8 @@ def glab_api(
         cmd.extend(["--input", "-", "-H", "Content-Type: application/json"])
         stdin_data = json.dumps(json_body)
 
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, input=stdin_data)
+    # glab prints UTF-8; "text=True" alone would decode it with the locale codec (cp1252 on Windows)
+    result = subprocess.run(cmd, capture_output=True, encoding="utf-8", timeout=60, input=stdin_data)
     if result.returncode != 0:
         raise GlabApiError(
             f"glab api failed: {result.stderr.strip()}",
@@ -110,7 +111,7 @@ def glab_mr_view_json(hostname: str | None = None) -> dict:
     cmd = ["glab", "mr", "view", "--output", "json"]
     if hostname:
         cmd.extend(["--hostname", hostname])
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(cmd, capture_output=True, encoding="utf-8", timeout=30)
     if result.returncode != 0:
         raise GlabApiError(
             f"glab mr view failed: {result.stderr.strip()}",
