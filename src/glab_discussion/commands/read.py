@@ -50,13 +50,13 @@ def _load_meta(output_dir: Path, meta_path: Path) -> dict[str, dict]:
     """
     if not meta_path.exists():
         return {}
-    meta: dict[str, dict] = json.loads(meta_path.read_text())
+    meta: dict[str, dict] = json.loads(meta_path.read_text(encoding="utf-8"))
     for entry in meta.values():
         if "hash" in entry:
             continue
         path = _safe_dump_file(output_dir, entry.get("filename", ""))
         if path is not None and path.is_file():
-            entry["hash"] = _content_hash(path.read_text())
+            entry["hash"] = _content_hash(path.read_text(encoding="utf-8"))
     return meta
 
 
@@ -143,7 +143,7 @@ def run(args: argparse.Namespace) -> None:
         ):
             continue
 
-        (output_dir / filename).write_text(content)
+        (output_dir / filename).write_text(content, encoding="utf-8")
 
         if old_entry is None:
             new_files.append(filename)
@@ -167,7 +167,7 @@ def run(args: argparse.Namespace) -> None:
         deleted_files.append(old_filename)
 
     # Save updated meta
-    meta_path.write_text(json.dumps(new_meta, indent=2) + "\n")
+    meta_path.write_text(json.dumps(new_meta, indent=2) + "\n", encoding="utf-8")
 
     # Print summary
     is_first_run = not old_meta

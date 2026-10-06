@@ -99,6 +99,18 @@ class TestDumpChangeDetection:
         assert set(meta) == {"a" * 40, "b" * 40}
         assert all(set(entry) == {"filename", "hash"} for entry in meta.values())
 
+    def test_dump_files_are_utf8_whatever_the_locale_is(self, capsys, gitlab: FakeGitLab, dump_dir: Path) -> None:
+        body = "Janeček says 🔎 rows × 20 → fine"
+        gitlab.discussions[0]["notes"][0]["body"] = body
+
+        _read(capsys)
+        out = _read(capsys)
+
+        assert "(2 discussions up to date)" in out
+        texts = [p.read_bytes().decode("utf-8") for p in dump_dir.iterdir() if p.name != ".meta.json"]
+        assert any(body in text for text in texts)
+        json.loads((dump_dir / ".meta.json").read_bytes().decode("utf-8"))
+
     def test_second_run_rewrites_nothing(self, capsys, dump_dir: Path) -> None:
         _read(capsys)
         mtimes = {p.name: p.stat().st_mtime_ns for p in dump_dir.iterdir()}
