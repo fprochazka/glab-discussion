@@ -281,6 +281,40 @@ all_cases() {
   run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/draft_notes/77 -X DELETE'
   run_case BLOCK BLOCK BLOCK 'glab api -X POST "projects/123/merge_requests/5/draft_notes/bulk_publish"'
 
+  # ---------------- every route glab-discussion replaces, in each spelling ----------------
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/notes?per_page=100'
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/notes/'
+  run_case BLOCK BLOCK BLOCK 'glab api -X POST projects/123/merge_requests/5/notes -f body=hi'
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/notes/99'
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/notes/99/ -X PUT -f body=x'
+  run_case BLOCK BLOCK BLOCK 'glab api "projects/123/merge_requests/5/discussions?per_page=100"'
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/discussions/'
+  run_case BLOCK BLOCK BLOCK 'glab api -X POST projects/123/merge_requests/5/discussions -f body=hi'
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/discussions/6a9c1750b37d513a43987b574953fceb50b03ce7'
+  run_case BLOCK BLOCK BLOCK 'glab api -X POST projects/123/merge_requests/5/discussions/abc/notes -f body=hi'
+  run_case BLOCK BLOCK BLOCK 'glab api "projects/123/merge_requests/5/discussions/abc/notes?per_page=100"'
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/discussions/abc/notes/42 -X DELETE'
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/draft_notes/77'
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/draft_notes/77 -X PUT -f note=x'
+  run_case BLOCK BLOCK BLOCK 'glab api -X PUT projects/123/merge_requests/5/draft_notes/77/publish'
+  run_case BLOCK BLOCK BLOCK 'glab api https://gitlab.example.com/api/v4/projects/group%2Fproj/merge_requests/5/notes'
+  run_case BLOCK BLOCK BLOCK 'glab api "https://gitlab.example.com/api/v4/projects/group%2Fproj/merge_requests/5/discussions?per_page=100"'
+  run_case BLOCK BLOCK BLOCK 'glab api https://gitlab.example.com/api/v4/projects/group%2Fproj/merge_requests/5/draft_notes/bulk_publish -X POST'
+  run_case BLOCK BLOCK BLOCK 'glab api projects/123/merge_requests/5/notes|jq ".[].id"'
+
+  # ---------------- award emoji (reactions): glab-discussion has no command for them ----------------
+  run_case ALLOW ALLOW ALLOW 'glab api projects/123/merge_requests/5/notes/99/award_emoji'
+  run_case ALLOW ALLOW ALLOW 'glab api projects/123/merge_requests/5/notes/99/award_emoji -X POST -f name=recycle'
+  run_case ALLOW ALLOW ALLOW 'glab api "projects/:id/merge_requests/20/notes/1996757/award_emoji" -f name=thumbsup'
+  run_case ALLOW ALLOW ALLOW 'glab api projects/123/merge_requests/5/notes/99/award_emoji/7 -X DELETE'
+  run_case ALLOW ALLOW ALLOW 'glab api "https://gitlab.example.com/api/v4/projects/group%2Fproj/merge_requests/5/notes/99/award_emoji?per_page=100"'
+  run_case ALLOW ALLOW ALLOW 'glab api projects/mygroup%2Fmyrepo/merge_requests/42/award_emoji'
+  run_case ALLOW ALLOW ALLOW 'glab api -X POST projects/123/merge_requests/5/award_emoji -f name=thumbsup'
+  # A note whose body mentions award_emoji is still a note.
+  run_case BLOCK BLOCK BLOCK 'glab api -X POST projects/123/merge_requests/5/notes -f body="add an award_emoji instead"'
+  # GitLab has no award_emoji route under a discussion; nothing glab-discussion replaces either.
+  run_case ALLOW ALLOW ALLOW 'glab api projects/123/merge_requests/5/discussions/abc/notes/42/award_emoji'
+
   # ---------------- glab mr view --comments ----------------
   run_case BLOCK BLOCK BLOCK 'glab mr view 42 --comments'
   run_case BLOCK BLOCK BLOCK 'glab mr view 42 -R mygroup/myrepo --comments -F json'
