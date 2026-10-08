@@ -42,11 +42,18 @@ deny() {
   exit 0
 }
 
+# The `any_arg_matches` pattern of the mr-discussions-api rule in blocked-commands.yaml,
+# adapted to raw command text: a path segment also stops at a quote, a backtick or
+# whitespace, and the path ends at one of those or a shell operator instead of at the end
+# of the token. Change both together.
+SEGMENT="[^/?\"'\`[:space:]]+"
+MR_DISCUSSIONS_PATH="merge_requests/$SEGMENT/(notes(/[0-9]+)?|discussions(/$SEGMENT(/notes(/[0-9]+)?)?)?|draft_notes(/bulk_publish|/[0-9]+(/publish)?)?)/?([?\"'\`[:space:];|&<>)]|\$)"
+
 # Degraded mode: the pre-bash-classify text patterns. They match the raw
 # command text, so they also fire on text that only mentions a blocked command.
 fallback() {
   local note="$1"
-  if printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+api\b.*merge_requests[^"'"'"']*/(discussions|notes|draft_notes)' \
+  if printf '%s' "$CMD" | grep -qE "glab[[:space:]]+api\b.*$MR_DISCUSSIONS_PATH" \
     || printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+mr[[:space:]]+view\b.*--comments\b' \
     || printf '%s' "$CMD" | grep -qE 'glab[[:space:]]+mr[[:space:]]+note\b'; then
     deny "$REASON

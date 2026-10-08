@@ -10,9 +10,14 @@
 # evade a rule, while a heredoc body or an `echo` string that merely names one of these
 # commands is not an invocation and does not match.
 rules:
+  # Exactly the MR routes glab-discussion replaces: notes, discussions and their notes,
+  # draft notes and their publish actions. The pattern is anchored at the end of the path,
+  # so the routes below a note, `notes/:id/award_emoji` (reactions), stay allowed —
+  # glab-discussion has no command for them. block-glab-api-discussions.sh uses the same
+  # pattern in its text fallback; change both together.
   - name: mr-discussions-api
     command: [glab, api]
-    any_arg_matches: 'merge_requests/[^/?]+/(discussions|notes|draft_notes)(/|\?|$)'
+    any_arg_matches: 'merge_requests/[^/?]+/(notes(/[0-9]+)?|discussions(/[^/?]+(/notes(/[0-9]+)?)?)?|draft_notes(/bulk_publish|/[0-9]+(/publish)?)?)/?(\?|$)'
 
   # `--resolved` and `--unresolved` imply `--comments` (glab 1.116.0), so they read the
   # discussion threads just as much as the flag they imply.

@@ -37,7 +37,7 @@ The hook blocks:
 
 | Rule | Shape |
 |---|---|
-| `mr-discussions-api` | `glab api` against a merge request's `discussions`, `notes` or `draft_notes` sub-resource |
+| `mr-discussions-api` | `glab api` against the merge request `discussions`, `notes` and `draft_notes` endpoints that `glab-discussion` replaces. Reactions on a note (`notes/:id/award_emoji`) are allowed, since `glab-discussion` has no command for them |
 | `mr-view-comments` | `glab mr view --comments`, its `-c` short form, and `--resolved` / `--unresolved`, which imply it |
 | `mr-note` | `glab mr note`, except the read-only `glab mr note list` |
 
